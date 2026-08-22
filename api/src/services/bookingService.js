@@ -10,6 +10,7 @@ import { AppError } from "../utils/AppError.js";
 
 import {
   assertBookingCanBeCancelled,
+  assertCancellationWithinWindow,
 } from "../utils/bookingStateMachine.js";
 
 
@@ -1066,11 +1067,8 @@ export async function cancelBooking({
 
       const booking =
         await Booking.findOne({
-          _id:
-            bookingId,
-
-          studentId:
-            actor.id,
+          _id: bookingId,
+          studentId: actor.id,
         }).session(session);
 
       if (!booking) {
@@ -1080,18 +1078,31 @@ export async function cancelBooking({
           "RESOURCE_NOT_FOUND"
         );
       }
+ /*
+       * ----------------------------------------------
+       * 1b. LOAD SLOT START TIME FOR CUTOFF CHECK
+       * ----------------------------------------------
+       */
+      const slotForCutoff =
+        await Slot.findById(booking.slotId)
+          .select("startAt")
+          .session(session);
 
+      if (!slotForCutoff) {
+        throw new AppError(
+          "Slot not found.",
+          404,
+          "RESOURCE_NOT_FOUND"
+        );
+      }
 
       /*
        * ----------------------------------------------
        * 2. STATE VALIDATION
        * ----------------------------------------------
        */
-
-      assertBookingCanBeCancelled(
-        booking.status
-      );
-
+      assertBookingCanBeCancelled(booking.status);
+      assertCancellationWithinWindow(slotForCutoff.startAt);
 
       /*
        * ----------------------------------------------
@@ -1259,3 +1270,127 @@ export async function cancelBooking({
     }
   );
 }
+
+
+function assertCounsellor(actor) {
+  if (!actor || actor.role !== "counsellor") {
+    throw new AppError(
+      "Only counsellors can set booking outcomes.",
+      403,
+      "FORBIDDEN"
+    );
+  }
+}
+
+/*
+ * ==================================================
+ * MARK BOOKING OUTCOME
+ * ==================================================
+ *
+ * booked -> attended
+ * booked -> no_show
+ *
+ * Ownership: a counsellor may only mark outcomes on
+ * bookings belonging to their own slots. Enforced by
+ * scoping the query to counsellorId — not a separate
+ * "check then act" step, so there's no gap to race.
+ */
+export async function markBookingOutcome({
+  actor,
+  bookingId,
+  outcome,
+}) {
+  assertCounsellor(actor);
+
+  assertObjectId(bookingId, "booking ID");
+
+  return runTransaction(async (session) => {
+    /*
+     * 1. FIND BOOKING SCOPED TO THIS COUNSELLOR
+     *
+     * Deliberately filtering by counsellorId in the same
+     * query rather than fetching-then-comparing. A booking
+     * that exists but belongs to someone else must look
+     * identical to a booking that doesn't exist, from this
+     * counsellor's point of view — hence 403 below, decided
+     * by whether the scoped lookup found anything.
+     */
+    const booking = await Booking.findOne({
+      _id: bookingId,
+    }).session(session);
+
+    if (!booking) {
+      throw new AppError(
+        "Booking not found.",
+        404,
+        "RESOURCE_NOT_FOUND"
+      );
+    }
+
+    if (
+      booking.counsellorId.toString() !== actor.id.toString()
+    ) {
+      throw new AppError(
+        "You do not own the slot this booking belongs to.",
+        403,
+        "FORBIDDEN"
+      );
+    }
+
+    /*
+     * 2. STATE VALIDATION — centralised, single source of truth
+     */
+    assertValidOutcomeTransition(booking.status, outcome);
+
+    /*
+     * 3. ATOMIC UPDATE
+     *
+     * Status condition in the filter (not just the id) closes
+     * the race where two outcome requests land concurrently —
+     * only the first "booked" match wins; the second gets null
+     * and a clean 409 rather than silently overwriting.
+     */
+    const updatedBooking = await Booking.findOneAndUpdate(
+      {
+        _id: booking._id,
+        status: "booked",
+      },
+      {
+        $set: { status: outcome },
+        $inc: { version: 1 },
+      },
+      { session, new: true }
+    );
+
+    if (!updatedBooking) {
+      throw new AppError(
+        "Booking outcome could not be updated.",
+        409,
+        "OUTCOME_UPDATE_CONFLICT"
+      );
+    }
+
+    /*
+     * 4. AUDIT LOG
+     */
+    await AuditLog.create(
+      [
+        {
+          actorId: actor.id,
+          action: "BOOKING_OUTCOME_SET",
+          entityType: "Booking",
+          entityId: updatedBooking._id,
+          metadata: {
+            bookingId: updatedBooking._id.toString(),
+            previousStatus: "booked",
+            newStatus: outcome,
+          },
+        },
+      ],
+      { session }
+    );
+
+    return updatedBooking;
+  });
+}
+

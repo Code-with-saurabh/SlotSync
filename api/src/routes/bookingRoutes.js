@@ -5,6 +5,7 @@ import {
   listBookingsController,
   getBookingController,
   cancelBookingController,
+  markOutcome,
 } from "../controllers/bookingController.js";
 
 import {
@@ -89,5 +90,13 @@ router.post(
     "params"
   ),
   cancelBookingController
+);
+
+
+router.patch(
+  "/:id/outcome",
+  authenticate,
+  authorize("counsellor"),
+  markOutcome
 );
 export default router;

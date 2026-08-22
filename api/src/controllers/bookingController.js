@@ -106,3 +106,18 @@ export async function cancelBookingController(
     next(error);
   }
 }
+
+
+export async function markOutcome(req, res, next) {
+  try {
+    const booking = await markBookingOutcome({
+      actor: req.user,
+      bookingId: req.params.id,
+      outcome: req.body.outcome,
+    });
+
+    res.json({ data: booking });
+  } catch (error) {
+    next(error);
+  }
+}
