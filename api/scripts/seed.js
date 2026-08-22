@@ -1,292 +1,836 @@
-import mongoose from "mongoose";
-import dotenv from "dotenv";
+import "dotenv/config";
+
+import bcrypt from "bcrypt";
+
+import { connectDatabase, disconnectDatabase } from "../src/config/db.js";
 
 import User from "../src/models/User.js";
 import Slot from "../src/models/Slot.js";
 import Booking from "../src/models/Booking.js";
 import WaitlistEntry from "../src/models/WaitlistEntry.js";
 import AuditLog from "../src/models/AuditLog.js";
-import { hashPassword } from "../src/utils/password.js";
 
-dotenv.config();
 
-const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/slotsync";
+/*
+ * ==================================================
+ * CONFIGURATION
+ * ==================================================
+ */
 
+const ADMIN_COUNT = 1;
 const COUNSELLOR_COUNT = 5;
 const STUDENT_COUNT = 200;
+
 const SLOT_COUNT = 300;
-const TARGET_BOOKINGS = 5000;
-const TARGET_WAITLIST = 800;
+const TARGET_BOOKING_COUNT = 5000;
+const TARGET_WAITLIST_COUNT = 800;
 
-const ACTIVE_STATUSES = ["booked", "attended", "no_show"];
+const PASSWORD = "Password123!";
+const BCRYPT_ROUNDS = 12;
 
-/* ---------- utils ---------- */
 
-function randInt(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
+/*
+ * ==================================================
+ * DATE HELPERS
+ * ==================================================
+ */
+
+function addDays(date, days) {
+  const result = new Date(date);
+  result.setUTCDate(result.getUTCDate() + days);
+  return result;
 }
 
-function pick(arr) {
-  return arr[randInt(0, arr.length - 1)];
+function randomInt(min, max) {
+  return Math.floor(
+    Math.random() * (max - min + 1)
+  ) + min;
 }
 
-function shuffle(arr) {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = randInt(0, i);
-    [a[i], a[j]] = [a[j], a[i]];
+function shuffle(array) {
+  for (
+    let i = array.length - 1;
+    i > 0;
+    i -= 1
+  ) {
+    const j = Math.floor(
+      Math.random() * (i + 1)
+    );
+
+    [array[i], array[j]] = [
+      array[j],
+      array[i],
+    ];
   }
-  return a;
+
+  return array;
 }
 
-// Random day offset in [-14, +14], excluding 0 bunching too hard
-function randomSlotWindow() {
-  const dayOffset = randInt(-14, 14);
-  const hour = randInt(8, 17); // working hours
-  const start = new Date();
-  start.setDate(start.getDate() + dayOffset);
-  start.setHours(hour, 0, 0, 0);
-  const end = new Date(start.getTime() + 60 * 60 * 1000); // 1-hour slots
-  return { start, end };
+
+/*
+ * ==================================================
+ * CLEAN DATABASE
+ * ==================================================
+ *
+ * AuditLog is append-only at the model layer.
+ * We use collection-level deletion here because this
+ * is a controlled seed reset, not an application
+ * update/delete operation.
+ */
+
+async function clearDatabase() {
+  console.log("Clearing existing database data...");
+
+  await Booking.deleteMany({});
+  await WaitlistEntry.deleteMany({});
+  await Slot.deleteMany({});
+  await User.deleteMany({});
+
+  /*
+   * AuditLog middleware rejects deleteMany().
+   * For seed reset we bypass the model middleware.
+   */
+  await AuditLog.collection.deleteMany({});
+
+  console.log("Database cleared.");
 }
 
-function overlaps(aStart, aEnd, bStart, bEnd) {
-  return aStart < bEnd && aEnd > bStart;
-}
 
-/* ---------- main ---------- */
+/*
+ * ==================================================
+ * CREATE USERS
+ * ==================================================
+ */
 
-async function seed() {
-  console.log("Connecting to", MONGO_URI);
-  await mongoose.connect(MONGO_URI);
+async function createUsers() {
+  console.log("Creating users...");
 
-  console.log("Clearing existing data...");
-  await Promise.all([
-    User.deleteMany({}),
-    Slot.deleteMany({}),
-    Booking.deleteMany({}),
-    WaitlistEntry.deleteMany({}),
-    AuditLog.deleteMany({}),
-  ]);
+  const passwordHash = await bcrypt.hash(
+    PASSWORD,
+    BCRYPT_ROUNDS
+  );
 
-  const passwordHash = await hashPassword("Password123!");
-
-  /* ---------- Admin ---------- */
-  console.log("Creating admin...");
-  const admin = await User.create({
-    name: "Admin User",
-    email: "admin@slotsync.test",
-    password: passwordHash,
+  const admin = {
+    name: "SlotSync Admin",
+    email: "admin@slotsync.local",
+    passwordHash,
     role: "admin",
     isActive: true,
-  });
+  };
 
-  /* ---------- Counsellors ---------- */
-  console.log(`Creating ${COUNSELLOR_COUNT} counsellors...`);
   const counsellors = [];
-  for (let i = 0; i < COUNSELLOR_COUNT; i++) {
-    const c = await User.create({
-      name: `Counsellor ${i + 1}`,
-      email: `counsellor${i + 1}@slotsync.test`,
-      password: passwordHash,
+
+  for (
+    let i = 1;
+    i <= COUNSELLOR_COUNT;
+    i += 1
+  ) {
+    counsellors.push({
+      name: `Counsellor ${i}`,
+      email: `counsellor${i}@slotsync.local`,
+      passwordHash,
       role: "counsellor",
       isActive: true,
     });
-    counsellors.push(c);
   }
 
-  /* ---------- Students ---------- */
-  console.log(`Creating ${STUDENT_COUNT} students...`);
   const students = [];
-  const studentDocs = [];
-  for (let i = 0; i < STUDENT_COUNT; i++) {
-    studentDocs.push({
-      name: `Student ${i + 1}`,
-      email: `student${i + 1}@slotsync.test`,
-      password: passwordHash,
+
+  for (
+    let i = 1;
+    i <= STUDENT_COUNT;
+    i += 1
+  ) {
+    students.push({
+      name: `Student ${i}`,
+      email: `student${i}@slotsync.local`,
+      passwordHash,
       role: "student",
       isActive: true,
     });
   }
-  const insertedStudents = await User.insertMany(studentDocs);
-  students.push(...insertedStudents);
 
-  /* ---------- Slots ---------- */
-  console.log(`Creating ${SLOT_COUNT} slots...`);
+  const [createdAdmin] = await User.create([admin]);
+
+  const createdCounsellors =
+    await User.insertMany(counsellors);
+
+  const createdStudents =
+    await User.insertMany(students);
+
+  console.log(
+    `Created ${ADMIN_COUNT} admin.`
+  );
+
+  console.log(
+    `Created ${createdCounsellors.length} counsellors.`
+  );
+
+  console.log(
+    `Created ${createdStudents.length} students.`
+  );
+
+  return {
+    admin: createdAdmin,
+    counsellors: createdCounsellors,
+    students: createdStudents,
+  };
+}
+
+
+/*
+ * ==================================================
+ * CREATE SLOTS
+ * ==================================================
+ *
+ * 300 slots distributed across:
+ *
+ * previous 14 days
+ * current day
+ * next 14 days
+ *
+ * All timestamps are generated as UTC Date objects.
+ */
+
+async function createSlots(counsellors) {
+  console.log("Creating slots...");
+
   const slots = [];
-  for (let i = 0; i < SLOT_COUNT; i++) {
-    const counsellor = pick(counsellors);
-    const { start, end } = randomSlotWindow();
-    const capacity = randInt(3, 10);
+
+  const now = new Date();
+
+  for (
+    let i = 0;
+    i < SLOT_COUNT;
+    i += 1
+  ) {
+    const dayOffset = randomInt(
+      -14,
+      14
+    );
+
+    const counsellor =
+      counsellors[
+        i % counsellors.length
+      ];
+
+    /*
+     * Spread slots across normal working hours.
+     */
+    const hour = randomInt(9, 17);
+
+    const startAt = addDays(
+      new Date(
+        Date.UTC(
+          now.getUTCFullYear(),
+          now.getUTCMonth(),
+          now.getUTCDate(),
+          hour,
+          0,
+          0
+        )
+      ),
+      dayOffset
+    );
+
+    /*
+     * Slot duration:
+     * 30, 45 or 60 minutes.
+     */
+    const durationMinutes =
+      [30, 45, 60][
+        randomInt(0, 2)
+      ];
+
+    const endAt = new Date(
+      startAt.getTime() +
+        durationMinutes *
+          60 *
+          1000
+    );
+
+    /*
+     * Capacity is deliberately high enough
+     * to support approximately 5,000 bookings.
+     */
+    const capacity = randomInt(
+      20,
+      30
+    );
 
     slots.push({
-      counsellorId: counsellor._id,
-      startAt: start,
-      endAt: end,
+      counsellorId:
+        counsellor._id,
+
+      startAt,
+
+      endAt,
+
       capacity,
+
       bookedCount: 0,
-      status: "open",
+
+      waitlistSequence: 0,
+
       version: 0,
+
+      status: "open",
     });
   }
-  const insertedSlots = await Slot.insertMany(slots);
+
+  const createdSlots =
+    await Slot.insertMany(slots);
+
+  console.log(
+    `Created ${createdSlots.length} slots.`
+  );
+
+  return createdSlots;
+}
+
+
+/*
+ * ==================================================
+ * CREATE BOOKINGS
+ * ==================================================
+ *
+ * Important rules:
+ *
+ * 1. No slot exceeds capacity.
+ * 2. Same student is not inserted twice into same slot.
+ * 3. Slot.bookedCount matches active bookings.
+ *
+ * We deliberately create unique student-slot pairs.
+ */
+
+async function createBookings(
+  slots,
+  students
+) {
+  console.log("Creating bookings...");
+
+  const bookingDocuments = [];
 
   /*
-   * ---------- Bookings + Waitlist ----------
-   *
-   * Done in JS here (not via the transactional service layer)
-   * because seeding needs bulk speed, not per-request atomicity —
-   * there's no real concurrency during a single-process seed run.
-   * We still enforce the *rules* (capacity, no duplicate/overlap)
-   * in-memory so the resulting data is realistic and won't break
-   * your analytics or break assumptions your tests rely on.
+   * Track unique student-slot combinations.
    */
-  console.log("Generating bookings and waitlist entries...");
+  const usedPairs = new Set();
 
-  // Track each student's active booking windows to avoid overlap/dupe
-  const studentBookedWindows = new Map(); // studentId -> [{start, end, slotId}]
-  const slotBookedCounts = new Map(); // slotId -> current bookedCount
-  insertedSlots.forEach((s) => slotBookedCounts.set(s._id.toString(), 0));
+  /*
+   * Track confirmed count for every slot.
+   */
+  const slotBookedCounts =
+    new Map();
 
-  const bookingDocs = [];
-  const waitlistDocs = [];
-  const auditDocs = [];
+  for (const slot of slots) {
+    slotBookedCounts.set(
+      slot._id.toString(),
+      0
+    );
+  }
 
-  let bookingsCreated = 0;
-  let waitlistCreated = 0;
-
-  // Shuffle slots so bookings aren't front-loaded onto early slots
-  const slotPool = shuffle(insertedSlots);
-
+  /*
+   * We shuffle slots repeatedly so bookings
+   * are distributed instead of filling only
+   * the first slots.
+   */
   let attempts = 0;
-  const MAX_ATTEMPTS = (TARGET_BOOKINGS + TARGET_WAITLIST) * 5;
+
+  const maxAttempts =
+    TARGET_BOOKING_COUNT * 100;
 
   while (
-    (bookingsCreated < TARGET_BOOKINGS || waitlistCreated < TARGET_WAITLIST) &&
-    attempts < MAX_ATTEMPTS
+    bookingDocuments.length <
+      TARGET_BOOKING_COUNT &&
+    attempts < maxAttempts
   ) {
-    attempts++;
+    attempts += 1;
 
-    const slot = pick(slotPool);
-    const slotIdStr = slot._id.toString();
-    const student = pick(students);
-    const studentIdStr = student._id.toString();
+    const slot =
+      slots[
+        randomInt(
+          0,
+          slots.length - 1
+        )
+      ];
 
-    const existingWindows = studentBookedWindows.get(studentIdStr) || [];
+    const slotId =
+      slot._id.toString();
 
-    // Skip if student already has active booking on this exact slot
-    const alreadyOnThisSlot = existingWindows.some((w) => w.slotId === slotIdStr);
-    if (alreadyOnThisSlot) continue;
+    const currentCount =
+      slotBookedCounts.get(slotId);
 
-    const currentBooked = slotBookedCounts.get(slotIdStr);
-    const isFull = currentBooked >= slot.capacity;
+    /*
+     * Never exceed slot capacity.
+     */
+    if (
+      currentCount >= slot.capacity
+    ) {
+      continue;
+    }
 
-    if (!isFull && bookingsCreated < TARGET_BOOKINGS) {
-      // Check overlap against student's other active bookings
-      const hasOverlap = existingWindows.some((w) =>
-        overlaps(w.start, w.end, slot.startAt, slot.endAt)
-      );
-      if (hasOverlap) continue;
+    const student =
+      students[
+        randomInt(
+          0,
+          students.length - 1
+        )
+      ];
 
-      // Random status distribution: mostly booked, some attended/no_show/cancelled
-      const roll = Math.random();
-      let status = "booked";
-      if (slot.startAt < new Date()) {
-        // only past slots can have attended/no_show
-        if (roll < 0.7) status = "attended";
-        else if (roll < 0.85) status = "no_show";
-        else if (roll < 0.95) status = "booked";
-        else status = "cancelled";
-      } else if (roll < 0.1) {
+    const studentId =
+      student._id.toString();
+
+    const pairKey =
+      `${studentId}:${slotId}`;
+
+    /*
+     * Database unique index protection.
+     * We also avoid creating duplicates
+     * before insertMany.
+     */
+    if (
+      usedPairs.has(pairKey)
+    ) {
+      continue;
+    }
+
+    usedPairs.add(pairKey);
+
+    /*
+     * Most generated bookings are booked.
+     * Historical slots also contain realistic
+     * attended/no_show/cancelled states.
+     */
+    let status = "booked";
+
+    if (
+      slot.endAt < new Date()
+    ) {
+      const roll =
+        randomInt(1, 100);
+
+      if (roll <= 70) {
+        status = "attended";
+      } else if (roll <= 85) {
+        status = "no_show";
+      } else {
         status = "cancelled";
       }
+    }
 
-      const createdAt = new Date(
-        slot.startAt.getTime() - randInt(30, 20000) * 60 * 1000
+    bookingDocuments.push({
+      studentId:
+        student._id,
+
+      slotId:
+        slot._id,
+
+      counsellorId:
+        slot.counsellorId,
+
+      status,
+
+      version: 0,
+
+      /*
+       * Historical lead times are useful
+       * for analytics.
+       */
+      createdAt: new Date(
+        slot.startAt.getTime() -
+          randomInt(
+            60,
+            14 * 24 * 60
+          ) *
+            60 *
+            1000
+      ),
+
+      updatedAt:
+        new Date(),
+    });
+
+    /*
+     * Only active statuses consume capacity.
+     */
+    if (
+      [
+        "booked",
+        "attended",
+        "no_show",
+      ].includes(status)
+    ) {
+      slotBookedCounts.set(
+        slotId,
+        currentCount + 1
       );
-
-      bookingDocs.push({
-        studentId: student._id,
-        slotId: slot._id,
-        counsellorId: slot.counsellorId,
-        status,
-        version: 0,
-        createdAt,
-      });
-
-      if (ACTIVE_STATUSES.includes(status)) {
-        slotBookedCounts.set(slotIdStr, currentBooked + 1);
-        existingWindows.push({
-          start: slot.startAt,
-          end: slot.endAt,
-          slotId: slotIdStr,
-        });
-        studentBookedWindows.set(studentIdStr, existingWindows);
-      }
-
-      bookingsCreated++;
-    } else if (isFull && waitlistCreated < TARGET_WAITLIST) {
-      waitlistDocs.push({
-        studentId: student._id,
-        slotId: slot._id,
-        status: "waiting",
-        position: randInt(1, 20), // relative FIFO order per slot; fine for seed data
-        createdAt: new Date(),
-      });
-      waitlistCreated++;
     }
   }
 
-  console.log(`Inserting ${bookingDocs.length} bookings...`);
-  const insertedBookings = await Booking.insertMany(bookingDocs);
-
-  console.log(`Inserting ${waitlistDocs.length} waitlist entries...`);
-  await WaitlistEntry.insertMany(waitlistDocs);
-
-  // Sync each slot's bookedCount to match reality
-  console.log("Syncing slot bookedCount...");
-  const bulkOps = insertedSlots.map((slot) => ({
-    updateOne: {
-      filter: { _id: slot._id },
-      update: { $set: { bookedCount: slotBookedCounts.get(slot._id.toString()) } },
-    },
-  }));
-  await Slot.bulkWrite(bulkOps);
-
-  // A handful of audit log entries for cancellations, so AuditLog isn't empty
-  const cancelledBookings = insertedBookings.filter((b) => b.status === "cancelled");
-  cancelledBookings.slice(0, 50).forEach((b) => {
-    auditDocs.push({
-      actorId: b.studentId,
-      action: "BOOKING_CANCELLED",
-      entityType: "Booking",
-      entityId: b._id,
-      metadata: {
-        bookingId: b._id.toString(),
-        slotId: b.slotId.toString(),
-        previousStatus: "booked",
-        newStatus: "cancelled",
-      },
-    });
-  });
-  if (auditDocs.length) {
-    await AuditLog.insertMany(auditDocs);
+  if (
+    bookingDocuments.length !==
+    TARGET_BOOKING_COUNT
+  ) {
+    throw new Error(
+      `Could not generate ${TARGET_BOOKING_COUNT} bookings. Generated ${bookingDocuments.length}.`
+    );
   }
 
-  console.log("\n✅ Seed complete:");
-  console.log(`  Admin: 1`);
-  console.log(`  Counsellors: ${counsellors.length}`);
-  console.log(`  Students: ${students.length}`);
-  console.log(`  Slots: ${insertedSlots.length}`);
-  console.log(`  Bookings: ${insertedBookings.length}`);
-  console.log(`  Waitlist entries: ${waitlistDocs.length}`);
-  console.log(`  Audit logs: ${auditDocs.length}`);
+  await Booking.insertMany(
+    bookingDocuments,
+    {
+      ordered: true,
+    }
+  );
 
-  await mongoose.disconnect();
-  process.exit(0);
+  /*
+   * Synchronise Slot.bookedCount with the
+   * number of active bookings generated.
+   */
+  const bulkOperations = [];
+
+  for (const slot of slots) {
+    const slotId =
+      slot._id.toString();
+
+    const bookedCount =
+      slotBookedCounts.get(slotId);
+
+    bulkOperations.push({
+      updateOne: {
+        filter: {
+          _id: slot._id,
+        },
+
+        update: {
+          $set: {
+            bookedCount,
+          },
+        },
+      },
+    });
+  }
+
+  await Slot.bulkWrite(
+    bulkOperations
+  );
+
+  console.log(
+    `Created ${bookingDocuments.length} bookings.`
+  );
+
+  return {
+    bookingDocuments,
+    usedPairs,
+    slotBookedCounts,
+  };
 }
 
-seed().catch((err) => {
-  console.error("Seed failed:", err);
-  process.exit(1);
-});
+
+/*
+ * ==================================================
+ * CREATE WAITLIST ENTRIES
+ * ==================================================
+ *
+ * Waitlist entries are assigned FIFO positions.
+ *
+ * A student cannot have duplicate waiting entries
+ * for the same slot.
+ */
+
+async function createWaitlistEntries(
+  slots,
+  students,
+  usedPairs
+) {
+  console.log(
+    "Creating waitlist entries..."
+  );
+
+  const waitlistDocuments = [];
+
+  /*
+   * Keep track of student-slot waitlist pairs.
+   */
+  const usedWaitlistPairs =
+    new Set();
+
+  /*
+   * Position counter per slot.
+   */
+  const positions =
+    new Map();
+
+  for (const slot of slots) {
+    positions.set(
+      slot._id.toString(),
+      0
+    );
+  }
+
+  let attempts = 0;
+
+  const maxAttempts =
+    TARGET_WAITLIST_COUNT * 100;
+
+  while (
+    waitlistDocuments.length <
+      TARGET_WAITLIST_COUNT &&
+    attempts < maxAttempts
+  ) {
+    attempts += 1;
+
+    const slot =
+      slots[
+        randomInt(
+          0,
+          slots.length - 1
+        )
+      ];
+
+    const student =
+      students[
+        randomInt(
+          0,
+          students.length - 1
+        )
+      ];
+
+    const slotId =
+      slot._id.toString();
+
+    const studentId =
+      student._id.toString();
+
+    const bookingPair =
+      `${studentId}:${slotId}`;
+
+    const waitlistPair =
+      `${studentId}:${slotId}`;
+
+    /*
+     * Do not place a student on the waitlist
+     * if they already hold a booking for the
+     * same slot.
+     */
+    if (
+      usedPairs.has(bookingPair)
+    ) {
+      continue;
+    }
+
+    if (
+      usedWaitlistPairs.has(
+        waitlistPair
+      )
+    ) {
+      continue;
+    }
+
+    usedWaitlistPairs.add(
+      waitlistPair
+    );
+
+    const nextPosition =
+      positions.get(slotId) + 1;
+
+    positions.set(
+      slotId,
+      nextPosition
+    );
+
+    waitlistDocuments.push({
+      studentId:
+        student._id,
+
+      slotId:
+        slot._id,
+
+      position:
+        nextPosition,
+
+      status:
+        "waiting",
+
+      promotedAt:
+        null,
+    });
+  }
+
+  if (
+    waitlistDocuments.length !==
+    TARGET_WAITLIST_COUNT
+  ) {
+    throw new Error(
+      `Could not generate ${TARGET_WAITLIST_COUNT} waitlist entries. Generated ${waitlistDocuments.length}.`
+    );
+  }
+
+  await WaitlistEntry.insertMany(
+    waitlistDocuments,
+    {
+      ordered: true,
+    }
+  );
+
+  /*
+   * Keep waitlistSequence aligned with
+   * the highest assigned FIFO position.
+   */
+  const bulkOperations = [];
+
+  for (const slot of slots) {
+    const slotId =
+      slot._id.toString();
+
+    bulkOperations.push({
+      updateOne: {
+        filter: {
+          _id: slot._id,
+        },
+
+        update: {
+          $set: {
+            waitlistSequence:
+              positions.get(slotId),
+          },
+        },
+      },
+    });
+  }
+
+  await Slot.bulkWrite(
+    bulkOperations
+  );
+
+  console.log(
+    `Created ${waitlistDocuments.length} waitlist entries.`
+  );
+
+  return waitlistDocuments;
+}
+
+
+/*
+ * ==================================================
+ * VERIFY SEED DATA
+ * ==================================================
+ */
+
+async function verifySeedData() {
+  const [
+    adminCount,
+    counsellorCount,
+    studentCount,
+    slotCount,
+    bookingCount,
+    waitlistCount,
+  ] = await Promise.all([
+    User.countDocuments({
+      role: "admin",
+    }),
+
+    User.countDocuments({
+      role: "counsellor",
+    }),
+
+    User.countDocuments({
+      role: "student",
+    }),
+
+    Slot.countDocuments(),
+
+    Booking.countDocuments(),
+
+    WaitlistEntry.countDocuments(),
+  ]);
+
+  console.log("\n=================================");
+  console.log("SLOT SYNC SEED COMPLETE");
+  console.log("=================================");
+
+  console.log(
+    `Admins: ${adminCount}`
+  );
+
+  console.log(
+    `Counsellors: ${counsellorCount}`
+  );
+
+  console.log(
+    `Students: ${studentCount}`
+  );
+
+  console.log(
+    `Slots: ${slotCount}`
+  );
+
+  console.log(
+    `Bookings: ${bookingCount}`
+  );
+
+  console.log(
+    `Waitlist entries: ${waitlistCount}`
+  );
+
+  console.log("=================================\n");
+}
+
+
+/*
+ * ==================================================
+ * MAIN
+ * ==================================================
+ */
+
+async function seed() {
+  try {
+    console.log(
+      "Starting SlotSync database seed..."
+    );
+
+    await connectDatabase();
+
+    await clearDatabase();
+
+    const {
+      counsellors,
+      students,
+    } = await createUsers();
+
+    const slots =
+      await createSlots(
+        counsellors
+      );
+
+    const {
+      usedPairs,
+    } = await createBookings(
+      slots,
+      students
+    );
+
+    await createWaitlistEntries(
+      slots,
+      students,
+      usedPairs
+    );
+
+    await verifySeedData();
+
+    console.log(
+      "Seed completed successfully."
+    );
+  } catch (error) {
+    console.error(
+      "Seed failed:"
+    );
+
+    console.error(error);
+    process.exitCode = 1;
+  } finally {
+    await disconnectDatabase();
+  }
+}
+
+seed();
