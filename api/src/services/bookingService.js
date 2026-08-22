@@ -735,24 +735,21 @@ async function promoteNextWaitlistStudent(
      * ------------------------------------------------
      */
 
-    const activeBookings =
-      await Booking.find({
-  studentId,
-
-  status: {
-    $in: ACTIVE_BOOKING_STATUSES,
-  },
-})
-  .populate({
-    path: "slotId",
-    select: "startAt endAt status",
+   const activeBookings =
+  await Booking.find({
+    studentId: entry.studentId,
+    status: {
+      $in: ACTIVE_BOOKING_STATUSES,
+    },
   })
-  .session(session);
+    .populate({
+      path: "slotId",
+      select: "startAt endAt status",
+    })
+    .session(session);
 
-    let hasOverlap =
-      false;
+let hasOverlap = false;
 
-    
 for (const existingBooking of activeBookings) {
   if (!existingBooking.slotId) {
     continue;
@@ -761,48 +758,33 @@ for (const existingBooking of activeBookings) {
   const existingSlot = existingBooking.slotId;
 
   const overlaps =
-    existingSlot.startAt < slot.endAt &&
-    existingSlot.endAt > slot.startAt;
+    existingSlot.startAt < currentSlot.endAt &&
+    existingSlot.endAt > currentSlot.startAt;
 
   if (overlaps) {
-    throw new AppError(
-      "Student already has an overlapping booking.",
-      409,
-      "BOOKING_OVERLAP"
-    );
+    hasOverlap = true;
+    break;
   }
 }
-    if (hasOverlap) {
-      /*
-       * This student cannot be promoted because
-       * another active booking overlaps this slot.
-       *
-       * Remove the stale entry and continue to
-       * the next FIFO candidate.
-       */
 
-      await WaitlistEntry.findOneAndUpdate(
-        {
-          _id:
-            entry._id,
-
-          status:
-            "waiting",
-        },
-        {
-          $set: {
-            status:
-              "cancelled",
-          },
-        },
-        {
-          session,
-        }
-      );
-
-      continue;
+if (hasOverlap) {
+  await WaitlistEntry.findOneAndUpdate(
+    {
+      _id: entry._id,
+      status: "waiting",
+    },
+    {
+      $set: {
+        status: "cancelled",
+      },
+    },
+    {
+      session,
     }
+  );
 
+  continue;
+}
     /*
      * ------------------------------------------------
      * 4. ATOMIC WAITLIST CLAIM

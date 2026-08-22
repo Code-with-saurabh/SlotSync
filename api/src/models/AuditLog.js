@@ -4,10 +4,10 @@ const auditLogSchema =
   new mongoose.Schema(
     {
       actorId: {
-  type: mongoose.Schema.Types.ObjectId,
-  ref: "User",
-  required: true,
-},
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true,
+      },
 
       action: {
         type: String,
@@ -54,10 +54,20 @@ const rejectMutation = function () {
   );
 };
 
+auditLogSchema.pre("save", function () {
+  if (!this.isNew) {
+    throw new Error(
+      "AuditLog is append-only. Updates and deletes are not allowed."
+    );
+  }
+});
+
 auditLogSchema.pre(
   "updateOne",
   rejectMutation
 );
+
+ 
 
 auditLogSchema.pre(
   "updateMany",

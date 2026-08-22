@@ -1,16 +1,35 @@
-import dotenv from "dotenv";
-dotenv.config({ path: ".env.test" });
-
 import mongoose from "mongoose";
+import { MongoMemoryReplSet } from "mongodb-memory-server";
+
+let replSet;
 
 beforeAll(async () => {
-  if (mongoose.connection.readyState === 0) {
-    await mongoose.connect(process.env.MONGO_URI);
+  replSet = await MongoMemoryReplSet.create({
+    replSet: {
+      count: 1,
+      storageEngine: "wiredTiger",
+    },
+  });
+
+  const mongoUri = replSet.getUri();
+
+  process.env.MONGO_URI = mongoUri;
+
+  await mongoose.connect(mongoUri);
+});
+
+afterEach(async () => {
+  const collections = mongoose.connection.collections;
+
+  for (const collection of Object.values(collections)) {
+    await collection.deleteMany({});
   }
 });
 
 afterAll(async () => {
-  if (mongoose.connection.readyState !== 0) {
-    await mongoose.disconnect();
+  await mongoose.disconnect();
+
+  if (replSet) {
+    await replSet.stop();
   }
 });

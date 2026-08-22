@@ -41,9 +41,9 @@ describe("Waitlist promotion", () => {
       position: 1,
     });
 
-    const res = await request(app)
-      .delete(`/api/bookings/${booking._id}`)
-      .set("Authorization", `Bearer ${bookedToken}`);
+   const res = await request(app)
+  .post(`/api/bookings/${booking._id}/cancel`)
+  .set("Authorization", `Bearer ${bookedToken}`);
 
     expect(res.status).toBe(200);
 

@@ -8,7 +8,7 @@ describe("AuditLog — append-only enforcement", () => {
     entry = await AuditLog.create({
       actorId: new mongoose.Types.ObjectId(),
       action: "BOOKING_CANCELLED",
-      entityType: "Booking",
+      entity: "Booking",
       entityId: new mongoose.Types.ObjectId(),
       metadata: {},
     });
@@ -47,7 +47,7 @@ describe("AuditLog — append-only enforcement", () => {
     const fresh = await AuditLog.create({
       actorId: new mongoose.Types.ObjectId(),
       action: "BOOKING_CANCELLED",
-      entityType: "Booking",
+      entity: "Booking",
       entityId: new mongoose.Types.ObjectId(),
       metadata: {},
     });

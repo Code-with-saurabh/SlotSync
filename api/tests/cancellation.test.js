@@ -30,9 +30,9 @@ describe("Cancellation rules", () => {
       version: 0,
     });
 
-    const res = await request(app)
-      .delete(`/api/bookings/${booking._id}`)
-      .set("Authorization", `Bearer ${token}`);
+  const res = await request(app)
+  .post(`/api/bookings/${booking._id}/cancel`)
+  .set("Authorization", `Bearer ${token}`);
 
     expect(res.status).toBe(422);
   });
