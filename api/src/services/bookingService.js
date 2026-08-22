@@ -5,6 +5,11 @@ import Slot from "../models/Slot.js";
 import User from "../models/User.js";
 
 import { AppError } from "../utils/AppError.js";
+import AuditLog from "../models/AuditLog.js";
+
+import {
+  assertBookingCanBeCancelled,
+} from "../utils/bookingStateMachine.js";
 
 const BOOKING_WINDOW_MINUTES = 30;
 
@@ -432,4 +437,160 @@ export async function getStudentBookingById({
   }
 
   return booking;
+}
+
+
+export async function cancelBooking({
+  actor,
+  bookingId,
+}) {
+  assertStudent(actor);
+
+  assertObjectId(
+    actor.id,
+    "student ID"
+  );
+
+  assertObjectId(
+    bookingId,
+    "booking ID"
+  );
+
+  return runTransaction(
+    async (session) => {
+      /*
+       * Find the booking belonging to
+       * the authenticated student.
+       */
+      const booking =
+        await Booking.findOne({
+          _id: bookingId,
+          studentId: actor.id,
+        }).session(session);
+
+      if (!booking) {
+        throw new AppError(
+          "Booking not found.",
+          404,
+          "RESOURCE_NOT_FOUND"
+        );
+      }
+
+      /*
+       * Validate booking state.
+       *
+       * Only "booked" can currently
+       * transition to "cancelled".
+       */
+      assertBookingCanBeCancelled(
+        booking.status
+      );
+
+      /*
+       * Change booking state first.
+       *
+       * The status condition protects
+       * against concurrent cancellation.
+       */
+      const updatedBooking =
+        await Booking.findOneAndUpdate(
+          {
+            _id: booking._id,
+            studentId: actor.id,
+            status: "booked",
+          },
+          {
+            $set: {
+              status: "cancelled",
+            },
+            $inc: {
+              version: 1,
+            },
+          },
+          {
+            session,
+            new: true,
+          }
+        );
+
+      if (!updatedBooking) {
+        throw new AppError(
+          "Booking could not be cancelled.",
+          409,
+          "BOOKING_CANCELLATION_CONFLICT"
+        );
+      }
+
+      /*
+       * Release one seat atomically.
+       *
+       * bookedCount can never become negative.
+       */
+      const updatedSlot =
+        await Slot.findOneAndUpdate(
+          {
+            _id: booking.slotId,
+            bookedCount: {
+              $gt: 0,
+            },
+          },
+          {
+            $inc: {
+              bookedCount: -1,
+              version: 1,
+            },
+          },
+          {
+            session,
+            new: true,
+          }
+        );
+
+      if (!updatedSlot) {
+        throw new AppError(
+          "Unable to release the slot capacity.",
+          409,
+          "SLOT_CAPACITY_ERROR"
+        );
+      }
+
+      /*
+       * Record the cancellation in the
+       * audit log inside the same transaction.
+       */
+      await AuditLog.create(
+        [
+          {
+            actorId: actor.id,
+            action: "BOOKING_CANCELLED",
+            entityType: "Booking",
+            entityId: updatedBooking._id,
+            metadata: {
+              bookingId:
+                updatedBooking._id.toString(),
+
+              slotId:
+                updatedBooking.slotId.toString(),
+
+              previousStatus: "booked",
+
+              newStatus: "cancelled",
+            },
+          },
+        ],
+        {
+          session,
+        }
+      );
+
+      /*
+       * Transaction commits only after:
+       *
+       * 1. Booking cancelled
+       * 2. Slot capacity released
+       * 3. Audit log created
+       */
+      return updatedBooking;
+    }
+  );
 }

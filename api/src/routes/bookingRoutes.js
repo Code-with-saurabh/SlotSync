@@ -4,6 +4,7 @@ import {
   createBookingController,
   listBookingsController,
   getBookingController,
+  cancelBookingController,
 } from "../controllers/bookingController.js";
 
 import {
@@ -74,4 +75,19 @@ router.get(
   getBookingController
 );
 
+/*
+ * Cancel student's booking.
+ *
+ * POST /api/bookings/:id/cancel
+ */
+router.post(
+  "/:id/cancel",
+  authenticate,
+  authorize("student"),
+  validate(
+    bookingIdSchema,
+    "params"
+  ),
+  cancelBookingController
+);
 export default router;

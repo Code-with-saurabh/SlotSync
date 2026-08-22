@@ -2,8 +2,8 @@ import {
   createBooking,
   listStudentBookings,
   getStudentBookingById,
+  cancelBooking,
 } from "../services/bookingService.js";
-
 import {
   successResponse,
 } from "../utils/apiResponse.js";
@@ -74,6 +74,32 @@ export async function getBookingController(
       res,
       {
         booking,
+      }
+    );
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function cancelBookingController(
+  req,
+  res,
+  next
+) {
+  try {
+    const booking =
+      await cancelBooking({
+        actor: req.user,
+        bookingId: req.params.id,
+      });
+
+    return successResponse(
+      res,
+      {
+        booking,
+      },
+      {
+        action: "booking_cancelled",
       }
     );
   } catch (error) {
