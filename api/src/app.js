@@ -12,6 +12,7 @@ import testRoutes from "./routes/testRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import slotRoutes from "./routes/slotRoutes.js";
 import bookingRoutes from "./routes/bookingRoutes.js";
+import waitlistRoutes from "./routes/waitlistRoutes.js";
 
 const app = express();
 
@@ -84,6 +85,11 @@ app.use(
 app.use(
   "/api/bookings",
   bookingRoutes
+);
+
+app.use(
+  "/api/waitlist",
+  waitlistRoutes
 );
 
 /*

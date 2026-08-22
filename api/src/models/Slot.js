@@ -34,6 +34,11 @@ const slotSchema = new Schema(
       default: 0,
       min: 0,
     },
+    waitlistSequence: {
+  type: Number,
+  default: 0,
+  min: 0,
+},
 
     version: {
       type: Number,

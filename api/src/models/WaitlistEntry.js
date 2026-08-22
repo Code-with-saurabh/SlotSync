@@ -45,6 +45,10 @@ const waitlistEntrySchema = new Schema(
   }
 );
 
+/*
+ * One student can have only one waitlist
+ * entry for the same slot.
+ */
 waitlistEntrySchema.index(
   {
     studentId: 1,
@@ -52,13 +56,29 @@ waitlistEntrySchema.index(
   },
   {
     unique: true,
+
+    partialFilterExpression: {
+      status: "waiting",
+    },
   }
 );
-
+/*
+ * FIFO queue lookup.
+ */
 waitlistEntrySchema.index({
   slotId: 1,
   status: 1,
+  position: 1,
   createdAt: 1,
+});
+
+/*
+ * Useful for student waitlist queries.
+ */
+waitlistEntrySchema.index({
+  studentId: 1,
+  status: 1,
+  createdAt: -1,
 });
 
 const WaitlistEntry = mongoose.model(
