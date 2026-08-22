@@ -35,10 +35,10 @@ const slotSchema = new Schema(
       min: 0,
     },
     waitlistSequence: {
-  type: Number,
-  default: 0,
-  min: 0,
-},
+      type: Number,
+      default: 0,
+      min: 0,
+    },
 
     version: {
       type: Number,
@@ -68,9 +68,23 @@ slotSchema.index({
   startAt: 1,
 });
 
- slotSchema.pre("validate", async function () {
+// slotSchema.pre("validate", async function () {
+//   if (this.endAt <= this.startAt) {
+//     throw new Error("Slot end time must be after start time.");
+//   }
+
+//   if (this.bookedCount > this.capacity) {
+//     throw new Error(
+//       "Booked count cannot exceed slot capacity."
+//     );
+//   }
+// });
+
+slotSchema.pre("validate", async function () {
   if (this.endAt <= this.startAt) {
-    throw new Error("Slot end time must be after start time.");
+    throw new Error(
+      "Slot end time must be after start time."
+    );
   }
 
   if (this.bookedCount > this.capacity) {

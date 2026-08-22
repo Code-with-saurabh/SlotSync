@@ -25,6 +25,7 @@ import {
   bookingIdSchema,
   listBookingSchema,
 } from "../validators/bookingSchemas.js";
+import { getAnalytics } from "../controllers/analyticsController.js";
 
 const router = Router();
 
@@ -99,4 +100,14 @@ router.patch(
   authorize("counsellor"),
   markOutcome
 );
+
+
+router.get(
+  "/counsellor/:id",
+  authenticate,
+  authorize(["admin", "counsellor"]),
+  getAnalytics
+);
+
+
 export default router;

@@ -13,7 +13,8 @@ import authRoutes from "./routes/authRoutes.js";
 import slotRoutes from "./routes/slotRoutes.js";
 import bookingRoutes from "./routes/bookingRoutes.js";
 import waitlistRoutes from "./routes/waitlistRoutes.js";
-
+import analyticsRoutes from "./routes/analyticsRoutes.js";
+import auditRoutes from "./routes/auditRoutes.js";
 const app = express();
 
 /*
@@ -63,8 +64,8 @@ app.use(globalRateLimiter);
 /*
  * Health
  */
-app.use("/api/health", 
-    healthRoutes
+app.use("/api/health",
+  healthRoutes
 );
 
 app.use(
@@ -92,6 +93,14 @@ app.use(
   waitlistRoutes
 );
 
+app.use("/api/analytics",
+  analyticsRoutes
+);
+
+app.use(
+  "/api/audit",
+  auditRoutes
+);
 /*
  * 404
  */

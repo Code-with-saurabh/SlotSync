@@ -3,6 +3,7 @@ import {
   listStudentBookings,
   getStudentBookingById,
   cancelBooking,
+  markBookingOutcome
 } from "../services/bookingService.js";
 import {
   successResponse,
@@ -116,7 +117,9 @@ export async function markOutcome(req, res, next) {
       outcome: req.body.outcome,
     });
 
-    res.json({ data: booking });
+    return successResponse(res, {
+      booking,
+    });
   } catch (error) {
     next(error);
   }

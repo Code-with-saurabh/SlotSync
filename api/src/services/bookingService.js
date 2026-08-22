@@ -11,8 +11,8 @@ import { AppError } from "../utils/AppError.js";
 import {
   assertBookingCanBeCancelled,
   assertCancellationWithinWindow,
+  assertValidOutcomeTransition,
 } from "../utils/bookingStateMachine.js";
-
 
 const BOOKING_WINDOW_MINUTES = 30;
 
@@ -737,53 +737,41 @@ async function promoteNextWaitlistStudent(
 
     const activeBookings =
       await Booking.find({
-        studentId:
-          entry.studentId,
+  studentId,
 
-        status: {
-          $in:
-            ACTIVE_BOOKING_STATUSES,
-        },
-      })
-        .populate({
-          path:
-            "slotId",
-
-          select:
-            "startAt endAt status",
-        })
-        .session(session);
+  status: {
+    $in: ACTIVE_BOOKING_STATUSES,
+  },
+})
+  .populate({
+    path: "slotId",
+    select: "startAt endAt status",
+  })
+  .session(session);
 
     let hasOverlap =
       false;
 
-    for (
-      const existingBooking
-      of activeBookings
-    ) {
-      if (
-        !existingBooking.slotId
-      ) {
-        continue;
-      }
+    
+for (const existingBooking of activeBookings) {
+  if (!existingBooking.slotId) {
+    continue;
+  }
 
-      const existingSlot =
-        existingBooking.slotId;
+  const existingSlot = existingBooking.slotId;
 
-      const overlaps =
-        existingSlot.startAt <
-          currentSlot.endAt &&
-        existingSlot.endAt >
-          currentSlot.startAt;
+  const overlaps =
+    existingSlot.startAt < slot.endAt &&
+    existingSlot.endAt > slot.startAt;
 
-      if (overlaps) {
-        hasOverlap =
-          true;
-
-        break;
-      }
-    }
-
+  if (overlaps) {
+    throw new AppError(
+      "Student already has an overlapping booking.",
+      409,
+      "BOOKING_OVERLAP"
+    );
+  }
+}
     if (hasOverlap) {
       /*
        * This student cannot be promoted because
@@ -951,43 +939,39 @@ async function promoteNextWaitlistStudent(
      * ------------------------------------------------
      */
 
-    await AuditLog.create(
-      [
-        {
-          actorId:
-            null,
+ await AuditLog.create(
+  [
+    {
+      actorId: entry.studentId,
 
-          action:
-            "WAITLIST_PROMOTED",
+      action: "WAITLIST_PROMOTED",
 
-          entityType:
-            "WaitlistEntry",
+      entity: "WaitlistEntry",
 
-          entityId:
-            claimedEntry._id,
+      entityId: claimedEntry._id,
 
-          metadata: {
-            waitlistEntryId:
-              claimedEntry._id.toString(),
+      details: {
+        waitlistEntryId:
+          claimedEntry._id.toString(),
 
-            studentId:
-              entry.studentId.toString(),
+        studentId:
+          entry.studentId.toString(),
 
-            slotId:
-              currentSlot._id.toString(),
+        slotId:
+          currentSlot._id.toString(),
 
-            bookingId:
-              booking._id.toString(),
+        bookingId:
+          booking._id.toString(),
 
-            position:
-              entry.position,
-          },
-        },
-      ],
-      {
-        session,
-      }
-    );
+        position:
+          entry.position,
+      },
+    },
+  ],
+  {
+    session,
+  }
+);
 
     /*
      * ------------------------------------------------
@@ -1209,50 +1193,46 @@ export async function cancelBooking({
        * ----------------------------------------------
        */
 
-      await AuditLog.create(
-        [
-          {
-            actorId:
-              actor.id,
+    await AuditLog.create(
+  [
+    {
+      actorId: actor.id,
 
-            action:
-              "BOOKING_CANCELLED",
+      action: "BOOKING_CANCELLED",
 
-            entityType:
-              "Booking",
+      entity: "Booking",
 
-            entityId:
-              updatedBooking._id,
+      entityId: updatedBooking._id,
 
-            metadata: {
-              bookingId:
-                updatedBooking._id.toString(),
+      details: {
+        bookingId:
+          updatedBooking._id.toString(),
 
-              slotId:
-                updatedBooking.slotId.toString(),
+        slotId:
+          updatedBooking.slotId.toString(),
 
-              previousStatus:
-                "booked",
+        previousStatus:
+          "booked",
 
-              newStatus:
-                "cancelled",
+        newStatus:
+          "cancelled",
 
-              promotedBookingId:
-                promotion?.booking?._id
-                  ? promotion.booking._id.toString()
-                  : null,
+        promotedBookingId:
+          promotion?.booking?._id
+            ? promotion.booking._id.toString()
+            : null,
 
-              promotedWaitlistEntryId:
-                promotion?.entry?._id
-                  ? promotion.entry._id.toString()
-                  : null,
-            },
-          },
-        ],
-        {
-          session,
-        }
-      );
+        promotedWaitlistEntryId:
+          promotion?.entry?._id
+            ? promotion.entry._id.toString()
+            : null,
+      },
+    },
+  ],
+  {
+    session,
+  }
+);
 
 
       /*
@@ -1373,22 +1353,33 @@ export async function markBookingOutcome({
     /*
      * 4. AUDIT LOG
      */
-    await AuditLog.create(
-      [
-        {
-          actorId: actor.id,
-          action: "BOOKING_OUTCOME_SET",
-          entityType: "Booking",
-          entityId: updatedBooking._id,
-          metadata: {
-            bookingId: updatedBooking._id.toString(),
-            previousStatus: "booked",
-            newStatus: outcome,
-          },
-        },
-      ],
-      { session }
-    );
+   await AuditLog.create(
+  [
+    {
+      actorId: actor.id,
+
+      action: "BOOKING_OUTCOME_SET",
+
+      entity: "Booking",
+
+      entityId: updatedBooking._id,
+
+      details: {
+        bookingId:
+          updatedBooking._id.toString(),
+
+        previousStatus:
+          "booked",
+
+        newStatus:
+          outcome,
+      },
+    },
+  ],
+  {
+    session,
+  }
+);
 
     return updatedBooking;
   });

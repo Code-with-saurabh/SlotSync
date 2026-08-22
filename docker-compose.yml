@@ -1,0 +1,46 @@
+services:
+  mongo:
+    image: mongo:7.0
+    container_name: slotsync-mongo
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: >
+        mongosh --quiet --eval "try { rs.status().ok } catch (e) { rs.initiate({_id:'rs0',members:[{_id:0,host:'mongo:27017'}]}).ok }"
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: slotsync-api
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      MONGO_URI: mongodb://mongo:27017/slotsync?replicaSet=rs0
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+    ports:
+      - "4000:4000"
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: slotsync-web
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
+
+volumes:
+  mongo-data:

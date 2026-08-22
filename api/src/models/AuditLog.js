@@ -1,65 +1,93 @@
 import mongoose from "mongoose";
 
-const { Schema } = mongoose;
+const auditLogSchema =
+  new mongoose.Schema(
+    {
+      actorId: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "User",
+  required: true,
+},
 
-const auditLogSchema = new Schema(
-  {
-    actorId: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      required: false,
-      index: true,
-    },
+      action: {
+        type: String,
+        required: true,
+        trim: true,
+      },
 
-    action: {
-      type: String,
-      required: true,
-      trim: true,
-      maxlength: 100,
-      index: true,
-    },
+      entity: {
+        type: String,
+        required: true,
+        trim: true,
+      },
 
-    entityType: {
-      type: String,
-      required: true,
-      trim: true,
-      maxlength: 50,
-      index: true,
-    },
+      entityId: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: true,
+      },
 
-    entityId: {
-      type: Schema.Types.ObjectId,
-      required: false,
-      index: true,
-    },
+      details: {
+        type: mongoose.Schema.Types.Mixed,
+        default: null,
+      },
 
-    metadata: {
-      type: Schema.Types.Mixed,
-      default: {},
+      reason: {
+        type: String,
+        default: null,
+      },
     },
+    {
+      timestamps: true,
+      versionKey: false,
+    }
+  );
 
-    createdAt: {
-      type: Date,
-      default: Date.now,
-      immutable: true,
-      index: true,
-    },
-  },
-  {
-    versionKey: false,
-  }
+/*
+ * --------------------------------------------------
+ * APPEND-ONLY PROTECTION
+ * --------------------------------------------------
+ */
+
+const rejectMutation = function () {
+  throw new Error(
+    "AuditLog is append-only. Updates and deletes are not allowed."
+  );
+};
+
+auditLogSchema.pre(
+  "updateOne",
+  rejectMutation
 );
 
-auditLogSchema.index({
-  entityType: 1,
-  entityId: 1,
-  createdAt: -1,
-});
+auditLogSchema.pre(
+  "updateMany",
+  rejectMutation
+);
 
-auditLogSchema.index({
-  actorId: 1,
-  createdAt: -1,
-});
+auditLogSchema.pre(
+  "findOneAndUpdate",
+  rejectMutation
+);
+
+auditLogSchema.pre(
+  "deleteOne",
+  rejectMutation
+);
+
+auditLogSchema.pre(
+  "deleteMany",
+  rejectMutation
+);
+
+auditLogSchema.pre(
+  "findOneAndDelete",
+  rejectMutation
+);
+
+auditLogSchema.pre(
+  "findByIdAndDelete",
+  rejectMutation
+);
 
 const AuditLog = mongoose.model(
   "AuditLog",
