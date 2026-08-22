@@ -6,3 +6,6 @@ node_modules/
 coverage/
 npm-debug.log*
 .DS_Store
+
+
+#  //  "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
