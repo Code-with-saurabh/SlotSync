@@ -2,6 +2,11 @@ import { api } from "../../app/api";
 
 export const studentApi = api.injectEndpoints({
   endpoints: (builder) => ({
+
+    // ==================================================
+    // MY BOOKINGS
+    // ==================================================
+
     getMyBookings: builder.query({
       query: (params = {}) => ({
         url: "/bookings",
@@ -14,6 +19,11 @@ export const studentApi = api.injectEndpoints({
 
       providesTags: ["Bookings"],
     }),
+
+
+    // ==================================================
+    // BOOK SLOT
+    // ==================================================
 
     bookSlot: builder.mutation({
       query: (slotId) => ({
@@ -31,6 +41,11 @@ export const studentApi = api.injectEndpoints({
       ],
     }),
 
+
+    // ==================================================
+    // CANCEL BOOKING
+    // ==================================================
+
     cancelBooking: builder.mutation({
       query: (bookingId) => ({
         url: `/bookings/${bookingId}/cancel`,
@@ -44,6 +59,11 @@ export const studentApi = api.injectEndpoints({
       ],
     }),
 
+
+    // ==================================================
+    // MY WAITLIST
+    // ==================================================
+
     getMyWaitlist: builder.query({
       query: (params = {}) => ({
         url: "/waitlist",
@@ -56,6 +76,11 @@ export const studentApi = api.injectEndpoints({
 
       providesTags: ["Waitlist"],
     }),
+
+
+    // ==================================================
+    // JOIN WAITLIST
+    // ==================================================
 
     joinWaitlist: builder.mutation({
       query: (slotId) => ({
@@ -72,6 +97,11 @@ export const studentApi = api.injectEndpoints({
       ],
     }),
 
+
+    // ==================================================
+    // LEAVE WAITLIST
+    // ==================================================
+
     leaveWaitlist: builder.mutation({
       query: (entryId) => ({
         url: `/waitlist/${entryId}`,
@@ -83,14 +113,18 @@ export const studentApi = api.injectEndpoints({
         "Waitlist",
       ],
     }),
+
   }),
 });
+
 
 export const {
   useGetMyBookingsQuery,
   useBookSlotMutation,
   useCancelBookingMutation,
+
   useGetMyWaitlistQuery,
   useJoinWaitlistMutation,
   useLeaveWaitlistMutation,
+
 } = studentApi;

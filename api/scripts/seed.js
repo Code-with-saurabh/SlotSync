@@ -205,7 +205,7 @@ async function createSlots(counsellors) {
     i += 1
   ) {
     const dayOffset = randomInt(
-      -14,
+      1,
       14
     );
 

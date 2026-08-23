@@ -119,13 +119,45 @@ function getBookingStudentEmail(booking) {
 }
 
 
-function getBookingSlot(booking) {
+const getBookingSlot = (booking) => {
+  if (
+    booking?.slotId &&
+    typeof booking.slotId === "object"
+  ) {
+    return booking.slotId;
+  }
+
+  if (
+    booking?.slot &&
+    typeof booking.slot === "object"
+  ) {
+    return booking.slot;
+  }
+
+  return null;
+};
+
+
+const getBookingSlotId = (booking) => {
+  const slot = getBookingSlot(booking);
+
   return (
+    slot?._id ||
+    slot?.id ||
+    booking?.slotId?._id ||
     booking?.slotId ||
+    booking?.slot?._id ||
     booking?.slot ||
     null
   );
-}
+};
+// function getBookingSlot(booking) {
+//   return (
+//     booking?.slotId ||
+//     booking?.slot ||
+//     null
+//   );
+// }
 
 
 function CounsellorDashboard() {
