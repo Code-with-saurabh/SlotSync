@@ -102,12 +102,12 @@ router.patch(
 );
 
 
+ 
 router.get(
   "/counsellor/:id",
   authenticate,
-  authorize(["admin", "counsellor"]),
+  authorize("admin", "counsellor"),
   getAnalytics
 );
-
 
 export default router;
