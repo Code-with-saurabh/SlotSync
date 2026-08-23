@@ -38,13 +38,16 @@ export const authApi =
 
           invalidatesTags: [
             "Auth",
+            "Slots",
+            "Bookings",
+            "Waitlist",
+            "Analytics",
           ],
         }),
 
       getMe:
         builder.query({
-          query: () =>
-            "/auth/me",
+          query: () => "/auth/me",
 
           providesTags: [
             "Auth",
@@ -52,12 +55,12 @@ export const authApi =
         }),
     }),
   });
- 
-  export const {
+
+export const {
   useRegisterMutation,
   useLoginMutation,
   useRefreshMutation,
   useLogoutMutation,
   useGetMeQuery,
-  useLazyGetMeQuery,
+  useLazyGetMeQuery
 } = authApi;

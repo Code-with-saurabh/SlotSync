@@ -4,11 +4,11 @@ import {
 } from "@reduxjs/toolkit/query/react";
 
 import {
-  clearCredentials,
   setCredentials,
+  clearCredentials,
 } from "../features/auth/authSlice";
 
-const baseQuery = fetchBaseQuery({
+const rawBaseQuery = fetchBaseQuery({
   baseUrl:
     import.meta.env.VITE_API_URL ||
     "http://localhost:5000/api",
@@ -38,20 +38,25 @@ const baseQueryWithReauth = async (
   api,
   extraOptions
 ) => {
-  let result = await baseQuery(
+  let result = await rawBaseQuery(
     args,
     api,
     extraOptions
   );
 
   /*
-   * If the access token is expired,
-   * attempt to obtain a new access token
-   * using the HttpOnly refresh cookie.
+   * Only authentication failure should
+   * trigger token refresh.
+   *
+   * 403 is NOT handled here because:
+   *
+   * 403 = authenticated but not authorized
+   *
+   * 401 = authentication problem
    */
   if (result?.error?.status === 401) {
     const refreshResult =
-      await baseQuery(
+      await rawBaseQuery(
         {
           url: "/auth/refresh",
           method: "POST",
@@ -60,40 +65,46 @@ const baseQueryWithReauth = async (
         extraOptions
       );
 
-    if (refreshResult?.data?.data?.accessToken) {
+    if (refreshResult?.data) {
+      const refreshData =
+        refreshResult.data?.data ||
+        refreshResult.data;
+
       const newAccessToken =
-        refreshResult.data.data.accessToken;
+        refreshData?.accessToken;
 
-      /*
-       * The refresh endpoint only returns
-       * a new access token.
-       *
-       * The refresh token itself remains
-       * inside the HttpOnly cookie.
-       */
-      api.dispatch(
-        setCredentials({
-          user:
-            api.getState().auth?.user,
-          accessToken: newAccessToken,
-        })
-      );
+      if (newAccessToken) {
+        const currentUser =
+          api.getState().auth?.user;
 
-      /*
-       * Retry the original request with
-       * the new access token.
-       */
-      result = await baseQuery(
-        args,
-        api,
-        extraOptions
-      );
+        api.dispatch(
+          setCredentials({
+            user: currentUser,
+            accessToken:
+              newAccessToken,
+          })
+        );
+
+        /*
+         * Retry the original request
+         * with the newly generated token.
+         */
+        result = await rawBaseQuery(
+          args,
+          api,
+          extraOptions
+        );
+      } else {
+        api.dispatch(
+          clearCredentials()
+        );
+      }
     } else {
       /*
-       * Refresh failed.
+       * Refresh token is invalid,
+       * expired or revoked.
        *
-       * The current session can no longer
-       * be trusted, so clear frontend auth state.
+       * The session is genuinely over.
        */
       api.dispatch(
         clearCredentials()
@@ -107,7 +118,8 @@ const baseQueryWithReauth = async (
 export const api = createApi({
   reducerPath: "api",
 
-  baseQuery: baseQueryWithReauth,
+  baseQuery:
+    baseQueryWithReauth,
 
   tagTypes: [
     "Auth",
