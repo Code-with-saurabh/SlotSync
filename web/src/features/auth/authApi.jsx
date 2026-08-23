@@ -21,17 +21,30 @@ export const authApi =
           }),
         }),
 
+      refresh:
+        builder.mutation({
+          query: () => ({
+            url: "/auth/refresh",
+            method: "POST",
+          }),
+        }),
+
       logout:
         builder.mutation({
           query: () => ({
             url: "/auth/logout",
             method: "POST",
           }),
+
+          invalidatesTags: [
+            "Auth",
+          ],
         }),
 
       getMe:
         builder.query({
-          query: () => "/auth/me",
+          query: () =>
+            "/auth/me",
 
           providesTags: [
             "Auth",
@@ -39,10 +52,12 @@ export const authApi =
         }),
     }),
   });
-
-export const {
+ 
+  export const {
   useRegisterMutation,
   useLoginMutation,
+  useRefreshMutation,
   useLogoutMutation,
   useGetMeQuery,
+  useLazyGetMeQuery,
 } = authApi;

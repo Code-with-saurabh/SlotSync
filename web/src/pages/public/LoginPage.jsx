@@ -4,7 +4,10 @@ import { useDispatch } from "react-redux";
 import { LogIn } from "lucide-react";
 
 import { useLoginMutation } from "../../features/auth/authApi";
-import { setCredentials } from "../../features/auth/authSlice";
+import {
+  setCredentials,
+  setInitialized,
+} from "../../features/auth/authSlice";
 
 function LoginPage() {
   const navigate = useNavigate();
@@ -38,12 +41,16 @@ function LoginPage() {
       const data =
         response.data || response;
 
-      dispatch(
-        setCredentials({
-          user: data.user,
-          accessToken: data.accessToken,
-        })
-      );
+     dispatch(
+  setCredentials({
+    user: data.user,
+    accessToken: data.accessToken,
+  })
+);
+
+dispatch(
+  setInitialized(true)
+);
 
       if (data.user.role === "student") {
         navigate("/student/slots", {

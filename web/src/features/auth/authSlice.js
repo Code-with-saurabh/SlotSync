@@ -16,11 +16,19 @@ const authSlice = createSlice({
       state,
       action
     ) => {
-      state.user =
-        action.payload.user;
+      const {
+        user,
+        accessToken,
+      } = action.payload;
 
-      state.accessToken =
-        action.payload.accessToken;
+      if (user !== undefined) {
+        state.user = user;
+      }
+
+      if (accessToken !== undefined) {
+        state.accessToken =
+          accessToken;
+      }
     },
 
     setUser: (
