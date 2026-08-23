@@ -14,12 +14,15 @@ import {
 } from "lucide-react";
 
 import {
-  useGetSlotsQuery,
+  // useGetSlotsQuery,
   useGetMyBookingsQuery,
   useBookSlotMutation,
   useCancelBookingMutation,
   useJoinWaitlistMutation,
 } from "../../features/student/studentApi";
+import {
+  useGetSlotsQuery
+} from "../../features/slots/slotApi";
 
 import {
   useLogoutMutation,
@@ -74,69 +77,46 @@ function getSlotId(slot) {
 }
 
 function getSeatsLeft(slot) {
-  if (typeof slot?.seatsLeft === "number") {
-    return slot.seatsLeft;
-  }
-
   if (
-    typeof slot?.capacity === "number" &&
-    typeof slot?.bookedCount === "number"
+    typeof slot?.capacity !== "number" ||
+    typeof slot?.bookedCount !== "number"
   ) {
-    return Math.max(0, slot.capacity - slot.bookedCount);
+    return null;
   }
 
-  if (
-    typeof slot?.capacity === "number" &&
-    typeof slot?.confirmedBookings === "number"
-  ) {
-    return Math.max(0, slot.capacity - slot.confirmedBookings);
-  }
-
-  return null;
+  return Math.max(
+    0,
+    slot.capacity - slot.bookedCount
+  );
 }
 
 function getSlotDate(slot) {
-  return slot?.startTime || slot?.start || slot?.date;
+  return slot?.startAt || null;
 }
 
 function getSlotEnd(slot) {
-  return slot?.endTime || slot?.end;
+  return slot?.endAt || null;
 }
 
 function getCounsellorName(slot) {
   return (
-    slot?.counsellor?.name ||
+    slot?.counsellorId?.name ||
     slot?.counsellor?.fullName ||
     slot?.counsellorName ||
     "Counsellor"
   );
 }
 
-function extractList(response) {
-  if (Array.isArray(response)) return response;
+// function getCounsellorName(slot) {
+//   return (
+//     slot?.counsellor?.name ||
+//     slot?.counsellor?.fullName ||
+//     slot?.counsellorName ||
+//     "Counsellor"
+//   );
+// }
 
-  if (Array.isArray(response?.data)) {
-    return response.data;
-  }
-
-  if (Array.isArray(response?.data?.items)) {
-    return response.data.items;
-  }
-
-  if (Array.isArray(response?.items)) {
-    return response.items;
-  }
-
-  if (Array.isArray(response?.slots)) {
-    return response.slots;
-  }
-
-  if (Array.isArray(response?.bookings)) {
-    return response.bookings;
-  }
-
-  return [];
-}
+ 
 
 function StudentSlotsPage() {
   const navigate = useNavigate();
@@ -168,15 +148,10 @@ function StudentSlotsPage() {
 
   const [logout, logoutState] = useLogoutMutation();
 
-  const slots = useMemo(
-    () => extractList(slotsResponse),
-    [slotsResponse]
-  );
+  const slots = slotsResponse || [];
+const bookings = bookingsResponse || [];
 
-  const bookings = useMemo(
-    () => extractList(bookingsResponse),
-    [bookingsResponse]
-  );
+ 
 
   const bookingSlotIds = useMemo(() => {
     return new Set(
@@ -374,11 +349,10 @@ function StudentSlotsPage() {
         {/* Notice */}
         {notice && (
           <div
-            className={`mb-6 rounded-xl border p-4 text-sm ${
-              notice.type === "success"
-                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                : "border-red-200 bg-red-50 text-red-700"
-            }`}
+            className={`mb-6 rounded-xl border p-4 text-sm ${notice.type === "success"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+              : "border-red-200 bg-red-50 text-red-700"
+              }`}
           >
             {notice.message}
           </div>
@@ -447,15 +421,31 @@ function StudentSlotsPage() {
                 const alreadyBooked =
                   bookingSlotIds.has(slotId);
 
+                const slotStatus =
+                  slot?.status || "open";
+
                 const isFull =
                   seatsLeft !== null &&
                   seatsLeft <= 0;
+
+                const isCancelled =
+                  slotStatus === "cancelled";
+
+                const isClosed =
+                  slotStatus === "closed";
+
+                const isUnavailable =
+                  isCancelled ||
+                  isClosed ||
+                  isFull;
 
                 return (
                   <article
                     key={slotId}
                     className="flex flex-col rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200"
                   >
+
+
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="text-sm font-semibold text-blue-600">
@@ -468,15 +458,22 @@ function StudentSlotsPage() {
                       </div>
 
                       <span
-                        className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                          isFull
+                        className={`rounded-full px-2.5 py-1 text-xs font-semibold ${isCancelled
                             ? "bg-red-100 text-red-700"
-                            : "bg-emerald-100 text-emerald-700"
-                        }`}
+                            : isClosed
+                              ? "bg-slate-100 text-slate-700"
+                              : isFull
+                                ? "bg-amber-100 text-amber-700"
+                                : "bg-emerald-100 text-emerald-700"
+                          }`}
                       >
-                        {isFull
-                          ? "Full"
-                          : "Available"}
+                        {isCancelled
+                          ? "Cancelled"
+                          : isClosed
+                            ? "Closed"
+                            : isFull
+                              ? "Full"
+                              : "Available"}
                       </span>
                     </div>
 
@@ -520,11 +517,10 @@ function StudentSlotsPage() {
                         <span>
                           {seatsLeft === null
                             ? "Seats information unavailable"
-                            : `${seatsLeft} seat${
-                                seatsLeft === 1
-                                  ? ""
-                                  : "s"
-                              } left`}
+                            : `${seatsLeft} seat${seatsLeft === 1
+                              ? ""
+                              : "s"
+                            } left`}
                         </span>
                       </div>
                     </div>
@@ -535,15 +531,19 @@ function StudentSlotsPage() {
                           <CheckCircle2 size={17} />
                           Already booked
                         </div>
+                      ) : isCancelled ? (
+                        <div className="rounded-lg bg-red-50 px-4 py-3 text-center text-sm font-semibold text-red-700">
+                          Slot cancelled
+                        </div>
+                      ) : isClosed ? (
+                        <div className="rounded-lg bg-slate-100 px-4 py-3 text-center text-sm font-semibold text-slate-600">
+                          Slot closed
+                        </div>
                       ) : isFull ? (
                         <button
                           type="button"
-                          onClick={() =>
-                            handleWaitlist(slot)
-                          }
-                          disabled={
-                            waitlistState.isLoading
-                          }
+                          onClick={() => handleWaitlist(slot)}
+                          disabled={waitlistState.isLoading}
                           className="flex w-full items-center justify-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           <ListChecks size={17} />
@@ -555,9 +555,7 @@ function StudentSlotsPage() {
                       ) : (
                         <button
                           type="button"
-                          onClick={() =>
-                            handleBook(slot)
-                          }
+                          onClick={() => handleBook(slot)}
                           disabled={bookState.isLoading}
                           className="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                         >

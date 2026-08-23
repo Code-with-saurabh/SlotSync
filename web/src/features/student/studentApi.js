@@ -2,19 +2,6 @@ import { api } from "../../app/api";
 
 export const studentApi = api.injectEndpoints({
   endpoints: (builder) => ({
-    getSlots: builder.query({
-      query: (params = {}) => ({
-        url: "/slots",
-        params,
-      }),
-
-      transformResponse: (response) => {
-        return response?.data?.slots || [];
-      },
-
-      providesTags: ["Slots"],
-    }),
-
     getMyBookings: builder.query({
       query: (params = {}) => ({
         url: "/bookings",
@@ -100,7 +87,6 @@ export const studentApi = api.injectEndpoints({
 });
 
 export const {
-  useGetSlotsQuery,
   useGetMyBookingsQuery,
   useBookSlotMutation,
   useCancelBookingMutation,
