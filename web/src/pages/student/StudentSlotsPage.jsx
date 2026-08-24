@@ -324,11 +324,10 @@ function StudentSlotsPage() {
 
         {/* NOTICE */}
         {notice && (
-          <div className={`mb-6 rounded-xl border p-4 text-sm ${
-            notice.type === "success"
-              ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300"
-              : "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-900/30 dark:text-red-300"
-          }`}>
+          <div className={`mb-6 rounded-xl border p-4 text-sm ${notice.type === "success"
+            ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300"
+            : "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-900/30 dark:text-red-300"
+            }`}>
             {notice.message}
           </div>
         )}
@@ -482,7 +481,7 @@ function StudentSlotsPage() {
         </section>
 
         {/* MY WAITLIST */}
-        {waitlist.filter((e) => e?.status === "waiting").length > 0 && (
+        {/* {waitlist.filter((e) => e?.status === "waiting").length > 0 && (
           <section className="mt-10">
             <div className="mb-4">
               <h3 className="text-xl font-bold text-slate-900 dark:text-white">My Waitlist</h3>
@@ -524,7 +523,7 @@ function StudentSlotsPage() {
               })}
             </div>
           </section>
-        )}
+        )} */}
       </main>
     </div>
   );
