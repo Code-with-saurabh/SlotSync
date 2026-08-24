@@ -81,16 +81,28 @@ export const studentApi = api.injectEndpoints({
       }),
 
       async onQueryStarted(bookingId, { dispatch, queryFulfilled, getState }) {
-        /*
-         * Find the booking in cache to get its slotId,
-         * then optimistically decrement that specific slot.
-         */
         const patchResults = [];
 
-        const bookingsData = getState().api?.queries?.["getMyBookings(undefined)"]?.data;
-        const bookings = Array.isArray(bookingsData) ? bookingsData : bookingsData?.bookings || [];
-        const booking = bookings.find((b) => (b?._id || b?.id) === bookingId);
-        const targetSlotId = booking?.slotId?._id || booking?.slotId?.id || booking?.slotId;
+        /*
+         * Find the booking in ANY getMyBookings cache entry
+         * to get its slotId, then optimistically decrement
+         * that specific slot.
+         */
+        const allQueries = getState().api?.queries || {};
+        let targetSlotId = null;
+        let bookings = [];
+
+        for (const key of Object.keys(allQueries)) {
+          if (key.startsWith("getMyBookings(")) {
+            const data = allQueries[key]?.data;
+            bookings = Array.isArray(data) ? data : data?.bookings || [];
+            const booking = bookings.find((b) => (b?._id || b?.id) === bookingId);
+            if (booking) {
+              targetSlotId = booking?.slotId?._id || booking?.slotId?.id || booking?.slotId;
+              break;
+            }
+          }
+        }
 
         if (targetSlotId) {
           const patches = dispatch(
@@ -152,6 +164,34 @@ export const studentApi = api.injectEndpoints({
         body: { slotId },
       }),
 
+      async onQueryStarted(slotId, { dispatch, queryFulfilled }) {
+        const patchResults = [];
+
+        const patches = dispatch(
+          api.util.updateQueryData("getSlots", undefined, (draft) => {
+            if (!draft) return;
+            const slots = Array.isArray(draft) ? draft : draft?.slots || [];
+            for (const slot of slots) {
+              if ((slot._id || slot.id) === slotId) {
+                const prev = slot.bookedCount || 0;
+                slot.bookedCount = prev + 1;
+                patchResults.push({ prevBookedCount: prev });
+                break;
+              }
+            }
+          })
+        );
+        patchResults.push(patches);
+
+        try {
+          await queryFulfilled;
+        } catch {
+          for (const p of patchResults) {
+            if (p?.undo) p.undo();
+          }
+        }
+      },
+
       invalidatesTags: ["Slots", "Waitlist"],
     }),
 
@@ -165,6 +205,51 @@ export const studentApi = api.injectEndpoints({
         url: `/waitlist/${entryId}`,
         method: "DELETE",
       }),
+
+      async onQueryStarted(entryId, { dispatch, queryFulfilled, getState }) {
+        const patchResults = [];
+
+        const allQueries = getState().api?.queries || {};
+        let targetSlotId = null;
+
+        for (const key of Object.keys(allQueries)) {
+          if (key.startsWith("getMyWaitlist(")) {
+            const data = allQueries[key]?.data;
+            const entries = Array.isArray(data) ? data : data?.entries || [];
+            const entry = entries.find((e) => (e?._id || e?.id) === entryId);
+            if (entry) {
+              targetSlotId = entry?.slotId?._id || entry?.slotId?.id || entry?.slotId;
+              break;
+            }
+          }
+        }
+
+        if (targetSlotId) {
+          const patches = dispatch(
+            api.util.updateQueryData("getSlots", undefined, (draft) => {
+              if (!draft) return;
+              const slots = Array.isArray(draft) ? draft : draft?.slots || [];
+              for (const slot of slots) {
+                if ((slot._id || slot.id) === String(targetSlotId) && slot.bookedCount > 0) {
+                  const prev = slot.bookedCount;
+                  slot.bookedCount = prev - 1;
+                  patchResults.push({ prevBookedCount: prev });
+                  break;
+                }
+              }
+            })
+          );
+          patchResults.push(patches);
+        }
+
+        try {
+          await queryFulfilled;
+        } catch {
+          for (const p of patchResults) {
+            if (p?.undo) p.undo();
+          }
+        }
+      },
 
       invalidatesTags: ["Slots", "Waitlist"],
     }),

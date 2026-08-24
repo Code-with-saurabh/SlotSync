@@ -15,6 +15,8 @@ const rawBaseQuery = fetchBaseQuery({
 
   credentials: "include",
 
+  timeout: 15000,
+
   prepareHeaders: (
     headers,
     { getState }

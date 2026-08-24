@@ -7,7 +7,7 @@ import WaitlistEntry from "../models/WaitlistEntry.js";
 import AuditLog from "../models/AuditLog.js";
 
 import { AppError } from "../utils/AppError.js";
-import { broadcastToSlot } from "../utils/sse.js";
+import { broadcastAll } from "../utils/sse.js";
 
 import {
   assertBookingCanBeCancelled,
@@ -424,7 +424,7 @@ export async function createBooking({
   if (booking) {
     const slot = await Slot.findById(booking.slotId).lean();
     if (slot) {
-      broadcastToSlot(String(slot._id), {
+      broadcastAll({
         slotId: String(slot._id),
         bookedCount: slot.bookedCount,
         capacity: slot.capacity,
@@ -1253,7 +1253,7 @@ export async function cancelBooking({
   if (result?.booking) {
     const slot = await Slot.findById(result.booking.slotId).lean();
     if (slot) {
-      broadcastToSlot(String(slot._id), {
+      broadcastAll({
         slotId: String(slot._id),
         bookedCount: slot.bookedCount,
         capacity: slot.capacity,

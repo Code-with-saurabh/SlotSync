@@ -867,8 +867,15 @@ function AdminDashboard() {
             </div>
             <form onSubmit={handleCreateSlot} className="space-y-4 p-5">
               <div>
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-200">Counsellor ID</label>
-                <input name="counsellorId" required placeholder="Counsellor ObjectId" className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:focus:border-slate-400" />
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-200">Counsellor</label>
+                <select name="counsellorId" required className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-slate-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:focus:border-slate-400">
+                  <option value="">Select a counsellor</option>
+                  {counsellors.map((c) => (
+                    <option key={c._id || c.id} value={c._id || c.id}>
+                      {c.name || c.email} ({c.email})
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-200">Start Time</label>

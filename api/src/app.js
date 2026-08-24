@@ -19,7 +19,7 @@ import auditRoutes from "./routes/auditRoutes.js";
 import counsellorRoutes from "./routes/counsellorRoutes.js";
 
 import Slot from "./models/Slot.js";
-import { addClient } from "./utils/sse.js";
+import { addClient, addGlobalClient } from "./utils/sse.js";
 
 const app = express();
 
@@ -41,6 +41,54 @@ app.use(
     credentials: true,
   })
 );
+
+/*
+ * SSE: live seats-left for a slot
+ *
+ * GET /api/slots/:id/stream
+ *
+ * Registered FIRST — before requestLogger, body
+ * parsing, and rate limiter. SSE connections are
+ * long-lived and must not:
+ *   - eat rate-limit tokens
+ *   - create logger "finish" listeners that never fire
+ *   - go through body parsing (no body in SSE)
+ */
+app.get("/api/slots/:id/stream", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const slot = await Slot.findById(id).lean().maxTimeMS(5000);
+    if (!slot) {
+      return res.status(404).json({ error: "Slot not found." });
+    }
+
+    addClient(id, req, res);
+
+    res.write(`data: ${JSON.stringify({
+      slotId: id,
+      bookedCount: slot.bookedCount,
+      capacity: slot.capacity,
+      seatsLeft: slot.capacity - slot.bookedCount,
+    })}\n\n`);
+  } catch (error) {
+    if (!res.headersSent) {
+      res.status(500).json({ error: "SSE setup failed." });
+    }
+  }
+});
+
+/*
+ * SSE: single broadcast stream for ALL slot updates.
+ *
+ * GET /api/slots/stream
+ *
+ * One connection per browser tab instead of one per slot.
+ * Prevents HTTP/1.1 connection-pool exhaustion.
+ */
+app.get("/api/slots/stream", (req, res) => {
+  addGlobalClient(req, res);
+});
 
 /*
  * Request logger with request-id
@@ -116,36 +164,6 @@ app.use(
   "/api/counsellors",
   counsellorRoutes
 );
-
-/*
- * SSE: live seats-left for a slot
- *
- * GET /api/slots/:id/stream
- *
- * Clients receive an event whenever the slot's
- * bookedCount changes.
- */
-app.get("/api/slots/:id/stream", async (req, res) => {
-  const { id } = req.params;
-
-  try {
-    const slot = await Slot.findById(id).lean();
-    if (!slot) {
-      return res.status(404).json({ error: "Slot not found." });
-    }
-
-    addClient(id, req, res);
-
-    res.write(`data: ${JSON.stringify({
-      slotId: id,
-      bookedCount: slot.bookedCount,
-      capacity: slot.capacity,
-      seatsLeft: slot.capacity - slot.bookedCount,
-    })}\n\n`);
-  } catch {
-    res.status(500).json({ error: "SSE setup failed." });
-  }
-});
 
 /*
  * 404

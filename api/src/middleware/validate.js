@@ -19,15 +19,18 @@ export function validate(schema, source = "body") {
       }
 
       /*
-       * In Express 5, req.query is a getter-only
-       * property and cannot be reassigned directly.
-       * For body/params we replace the value.
-       * For query, the Zod defaults are already
-       * applied via .default() and accessible
-       * through the original req.query reference.
+       * Express 5 makes req.query and req.params
+       * getter-only properties — reassigning them
+       * throws TypeError in ESM strict mode.
+       *
+       * Only req.body is safe to replace.
+       * For query/params, the validated values are
+       * identical to the originals (Zod just confirms
+       * format), so controllers read directly from
+       * the original source.
        */
-      if (source !== "query") {
-        req[source] = result.data;
+      if (source === "body") {
+        req.body = result.data;
       }
 
       next();

@@ -163,7 +163,11 @@ function StudentSlotsPage() {
 
   const waitlistSlotIds = useMemo(() => {
     return new Set(
-      waitlist.map(getWaitlistSlotId).filter(Boolean).map(String)
+      waitlist
+        .filter((e) => e?.status === "waiting")
+        .map(getWaitlistSlotId)
+        .filter(Boolean)
+        .map(String)
     );
   }, [waitlist]);
 
@@ -181,11 +185,11 @@ function StudentSlotsPage() {
     try {
       await bookSlot({ slotId, idempotencyKey: getKey() }).unwrap();
       setNotice({ type: "success", message: "Slot booked successfully." });
-      await Promise.allSettled([refetchSlots(), refetchBookings(), refetchWaitlist()]);
     } catch (error) {
       setNotice({ type: "error", message: getErrorMessage(error, "Unable to book this slot.") });
     } finally {
       setBookingSlotId(null);
+      await Promise.allSettled([refetchSlots(), refetchBookings(), refetchWaitlist()]);
     }
   };
 
@@ -197,11 +201,11 @@ function StudentSlotsPage() {
     try {
       await cancelBooking(bookingId).unwrap();
       setNotice({ type: "success", message: "Booking cancelled successfully." });
-      await Promise.allSettled([refetchSlots(), refetchBookings(), refetchWaitlist()]);
     } catch (error) {
       setNotice({ type: "error", message: getErrorMessage(error, "Unable to cancel this booking.") });
     } finally {
       setCancellingBookingId(null);
+      await Promise.allSettled([refetchSlots(), refetchBookings(), refetchWaitlist()]);
     }
   };
 
@@ -213,11 +217,11 @@ function StudentSlotsPage() {
     try {
       await joinWaitlist(slotId).unwrap();
       setNotice({ type: "success", message: "You joined the waitlist successfully." });
-      await Promise.allSettled([refetchSlots(), refetchBookings(), refetchWaitlist()]);
     } catch (error) {
       setNotice({ type: "error", message: getErrorMessage(error, "Unable to join the waitlist.") });
     } finally {
       setWaitlistSlotId(null);
+      await Promise.allSettled([refetchSlots(), refetchBookings(), refetchWaitlist()]);
     }
   };
 
@@ -229,11 +233,11 @@ function StudentSlotsPage() {
     try {
       await leaveWaitlist(entryId).unwrap();
       setNotice({ type: "success", message: "You left the waitlist successfully." });
-      await Promise.allSettled([refetchWaitlist(), refetchSlots(), refetchBookings()]);
     } catch (error) {
       setNotice({ type: "error", message: getErrorMessage(error, "Unable to leave the waitlist.") });
     } finally {
       setLeavingWaitlistId(null);
+      await Promise.allSettled([refetchWaitlist(), refetchSlots(), refetchBookings()]);
     }
   };
 
@@ -390,7 +394,7 @@ function StudentSlotsPage() {
                 const currentBooking = bookings.find((b) => {
                   return b?.status === "booked" && String(getBookingSlotId(b)) === String(slotId);
                 }) || null;
-                const currentWaitlistEntry = waitlist.find((e) => String(getWaitlistSlotId(e)) === String(slotId)) || null;
+                const currentWaitlistEntry = waitlist.find((e) => e?.status === "waiting" && String(getWaitlistSlotId(e)) === String(slotId)) || null;
                 const alreadyWaitlisted = Boolean(currentWaitlistEntry);
 
                 return (
@@ -478,14 +482,14 @@ function StudentSlotsPage() {
         </section>
 
         {/* MY WAITLIST */}
-        {waitlist.length > 0 && (
+        {waitlist.filter((e) => e?.status === "waiting").length > 0 && (
           <section className="mt-10">
             <div className="mb-4">
               <h3 className="text-xl font-bold text-slate-900 dark:text-white">My Waitlist</h3>
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Slots you are currently waiting for.</p>
             </div>
             <div className="space-y-3">
-              {waitlist.map((entry) => {
+              {waitlist.filter((e) => e?.status === "waiting").map((entry) => {
                 const entryId = getWaitlistEntryId(entry);
                 const slot = entry?.slot && typeof entry.slot === "object" ? entry.slot : entry?.slotId && typeof entry.slotId === "object" ? entry.slotId : null;
                 return (
