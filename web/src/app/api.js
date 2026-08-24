@@ -15,6 +15,8 @@ const rawBaseQuery = fetchBaseQuery({
 
   credentials: "include",
 
+  timeout: 15000,
+
   prepareHeaders: (
     headers,
     { getState }
@@ -127,6 +129,8 @@ export const api = createApi({
     "Bookings",
     "Waitlist",
     "Analytics",
+    "Counsellors",
+    "Audit",
   ],
 
   endpoints: () => ({}),

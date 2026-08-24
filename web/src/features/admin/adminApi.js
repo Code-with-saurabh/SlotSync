@@ -3,6 +3,21 @@ import { api } from "../../app/api";
 export const adminApi = api.injectEndpoints({
   endpoints: (builder) => ({
     /*
+     * GET /api/analytics/institute
+     *
+     * Institute-wide analytics. Admin only.
+     */
+    getInstituteAnalytics: builder.query({
+      query: () => "/analytics/institute",
+
+      transformResponse: (response) => {
+        return response?.data || null;
+      },
+
+      providesTags: ["Analytics"],
+    }),
+
+    /*
      * GET /api/analytics/counsellor/:id
      *
      * Allowed by backend:
@@ -43,9 +58,10 @@ export const adminApi = api.injectEndpoints({
       }),
 
       transformResponse: (response) => {
+        const data = response?.data || {};
         return {
-          logs: response?.data || [],
-          pagination: response?.pagination || {
+          logs: data?.logs || [],
+          pagination: data?.pagination || {
             page: 1,
             limit: 20,
             total: 0,
@@ -64,6 +80,7 @@ export const adminApi = api.injectEndpoints({
 });
 
 export const {
+  useGetInstituteAnalyticsQuery,
   useGetCounsellorAnalyticsQuery,
   useGetAuditLogsQuery,
 } = adminApi;

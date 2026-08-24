@@ -1,4 +1,5 @@
-import { getCounsellorAnalytics } from "../services/analyticsService.js";
+import { getCounsellorAnalytics, getInstituteAnalytics } from "../services/analyticsService.js";
+import { successResponse } from "../utils/apiResponse.js";
 
 export async function getAnalytics(req, res, next) {
   try {
@@ -7,10 +8,25 @@ export async function getAnalytics(req, res, next) {
       counsellorId: req.params.id,
     });
 
-    res.status(200).json({
-      success: true,
-      data: analytics,
+    /*
+     * Wrap in successResponse for consistent envelope.
+     * Tests access res.body.data.utilisationPercent
+     * so we spread analytics at the top level of data.
+     */
+    return successResponse(res, analytics);
+  } catch (error) {
+    next(error);
+  }
+}
+
+
+export async function getInstituteAnalyticsController(req, res, next) {
+  try {
+    const analytics = await getInstituteAnalytics({
+      actor: req.user,
     });
+
+    return successResponse(res, analytics);
   } catch (error) {
     next(error);
   }

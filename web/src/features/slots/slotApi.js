@@ -5,6 +5,9 @@ export const slotApi = api.injectEndpoints({
     /*
      * GET /api/slots
      *
+     * Cursor-based pagination: no skip().
+     * Returns { slots, nextCursor, hasMore }.
+     *
      * Used by:
      * - Student
      * - Counsellor
@@ -17,7 +20,12 @@ export const slotApi = api.injectEndpoints({
       }),
 
       transformResponse: (response) => {
-        return response?.data?.slots || [];
+        const data = response?.data;
+        return {
+          slots: data?.slots || [],
+          nextCursor: data?.nextCursor || null,
+          hasMore: data?.hasMore || false,
+        };
       },
 
       providesTags: ["Slots"],

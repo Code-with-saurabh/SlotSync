@@ -211,7 +211,7 @@ async function createSlots(counsellors) {
 
     const counsellor =
       counsellors[
-        i % counsellors.length
+      i % counsellors.length
       ];
 
     /*
@@ -239,14 +239,14 @@ async function createSlots(counsellors) {
      */
     const durationMinutes =
       [30, 45, 60][
-        randomInt(0, 2)
+      randomInt(0, 2)
       ];
 
     const endAt = new Date(
       startAt.getTime() +
-        durationMinutes *
-          60 *
-          1000
+      durationMinutes *
+      60 *
+      1000
     );
 
     /*
@@ -341,17 +341,17 @@ async function createBookings(
 
   while (
     bookingDocuments.length <
-      TARGET_BOOKING_COUNT &&
+    TARGET_BOOKING_COUNT &&
     attempts < maxAttempts
   ) {
     attempts += 1;
 
     const slot =
       slots[
-        randomInt(
-          0,
-          slots.length - 1
-        )
+      randomInt(
+        0,
+        slots.length - 1
+      )
       ];
 
     const slotId =
@@ -371,10 +371,10 @@ async function createBookings(
 
     const student =
       students[
-        randomInt(
-          0,
-          students.length - 1
-        )
+      randomInt(
+        0,
+        students.length - 1
+      )
       ];
 
     const studentId =
@@ -438,12 +438,12 @@ async function createBookings(
        */
       createdAt: new Date(
         slot.startAt.getTime() -
-          randomInt(
-            60,
-            14 * 24 * 60
-          ) *
-            60 *
-            1000
+        randomInt(
+          60,
+          14 * 24 * 60
+        ) *
+        60 *
+        1000
       ),
 
       updatedAt:
@@ -575,25 +575,25 @@ async function createWaitlistEntries(
 
   while (
     waitlistDocuments.length <
-      TARGET_WAITLIST_COUNT &&
+    TARGET_WAITLIST_COUNT &&
     attempts < maxAttempts
   ) {
     attempts += 1;
 
     const slot =
       slots[
-        randomInt(
-          0,
-          slots.length - 1
-        )
+      randomInt(
+        0,
+        slots.length - 1
+      )
       ];
 
     const student =
       students[
-        randomInt(
-          0,
-          students.length - 1
-        )
+      randomInt(
+        0,
+        students.length - 1
+      )
       ];
 
     const slotId =

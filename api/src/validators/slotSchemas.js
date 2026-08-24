@@ -83,6 +83,8 @@ export const listSlotsSchema = z.object({
   counsellorId:
     objectIdSchema.optional(),
 
+  cursor: objectIdSchema.optional(),
+
   status: z
     .enum([
       "open",

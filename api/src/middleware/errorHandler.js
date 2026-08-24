@@ -7,7 +7,8 @@ function isProduction() {
 
 export function errorHandler(err, req, res, next) {
   if (res.headersSent) {
-    return next(err);
+    console.error("Error after headers sent:", err?.message);
+    return;
   }
 
   /*

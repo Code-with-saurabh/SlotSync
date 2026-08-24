@@ -1,0 +1,443 @@
+{
+  "info": {
+    "name": "SlotSync API",
+    "description": "Counselling slot booking platform API collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api"
+    },
+    {
+      "key": "studentToken",
+      "value": ""
+    },
+    {
+      "key": "counsellorToken",
+      "value": ""
+    },
+    {
+      "key": "adminToken",
+      "value": ""
+    },
+    {
+      "key": "slotId",
+      "value": ""
+    },
+    {
+      "key": "bookingId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "GET /api/health",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/health"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "POST /api/auth/register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data?.accessToken) {",
+                  "  pm.collectionVariables.set('studentToken', res.data.accessToken);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/register",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Student\",\n  \"email\": \"student@test.com\",\n  \"password\": \"Password123!\",\n  \"role\": \"student\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST /api/auth/login (student)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data?.accessToken) {",
+                  "  pm.collectionVariables.set('studentToken', res.data.accessToken);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/login",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"student@test.com\",\n  \"password\": \"Password123!\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST /api/auth/login (counsellor)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data?.accessToken) {",
+                  "  pm.collectionVariables.set('counsellorToken', res.data.accessToken);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/login",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"counsellor@test.com\",\n  \"password\": \"Password123!\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST /api/auth/login (admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data?.accessToken) {",
+                  "  pm.collectionVariables.set('adminToken', res.data.accessToken);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/login",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@test.com\",\n  \"password\": \"Password123!\"\n}"
+            }
+          }
+        },
+        {
+          "name": "GET /api/auth/me",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/auth/me",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{studentToken}}" }
+            ]
+          }
+        },
+        {
+          "name": "POST /api/auth/logout",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/logout",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{studentToken}}" }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Slots",
+      "item": [
+        {
+          "name": "GET /api/slots (with cursor pagination)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/slots?limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["slots"],
+              "query": [
+                { "key": "limit", "value": "10" },
+                { "key": "cursor", "value": "", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/slots/:id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/slots/{{slotId}}"
+          }
+        },
+        {
+          "name": "POST /api/slots (admin)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/slots",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"startAt\": \"2026-08-25T10:00:00+05:30\",\n  \"endAt\": \"2026-08-25T10:30:00+05:30\",\n  \"capacity\": 5\n}"
+            }
+          }
+        },
+        {
+          "name": "GET /api/slots/:id/stream (SSE)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/slots/{{slotId}}/stream"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bookings",
+      "item": [
+        {
+          "name": "POST /api/bookings (with idempotency key)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data?.booking?._id) {",
+                  "  pm.collectionVariables.set('bookingId', res.data.booking._id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/bookings",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{studentToken}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "idem-{{$guid}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"slotId\": \"{{slotId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "GET /api/bookings (my bookings)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/bookings",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{studentToken}}" }
+            ]
+          }
+        },
+        {
+          "name": "POST /api/bookings/:id/cancel",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/bookings/{{bookingId}}/cancel",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{studentToken}}" }
+            ]
+          }
+        },
+        {
+          "name": "GET /api/bookings/counsellor",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/bookings/counsellor",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{counsellorToken}}" }
+            ]
+          }
+        },
+        {
+          "name": "PATCH /api/bookings/:id/outcome",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/bookings/{{bookingId}}/outcome",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{counsellorToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"outcome\": \"attended\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Waitlist",
+      "item": [
+        {
+          "name": "POST /api/waitlist",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/waitlist",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{studentToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"slotId\": \"{{slotId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "GET /api/waitlist (my waitlist)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/waitlist",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{studentToken}}" }
+            ]
+          }
+        },
+        {
+          "name": "DELETE /api/waitlist/:id",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/waitlist/ENTRY_ID_HERE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{studentToken}}" }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Analytics",
+      "item": [
+        {
+          "name": "GET /api/analytics/counsellor/:id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/analytics/counsellor/COUNSELLOR_ID_HERE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ]
+          }
+        },
+        {
+          "name": "GET /api/analytics/institute",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/analytics/institute",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Counsellors (Admin)",
+      "item": [
+        {
+          "name": "GET /api/counsellors",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/counsellors",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ]
+          }
+        },
+        {
+          "name": "POST /api/counsellors",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/counsellors",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Dr. New Counsellor\",\n  \"email\": \"newcounsellor@test.com\",\n  \"password\": \"Password123!\"\n}"
+            }
+          }
+        },
+        {
+          "name": "PATCH /api/counsellors/:id",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/counsellors/COUNSELLOR_ID_HERE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Dr. Updated Name\"\n}"
+            }
+          }
+        },
+        {
+          "name": "DELETE /api/counsellors/:id",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/counsellors/COUNSELLOR_ID_HERE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Audit (Admin)",
+      "item": [
+        {
+          "name": "GET /api/audit",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/audit",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

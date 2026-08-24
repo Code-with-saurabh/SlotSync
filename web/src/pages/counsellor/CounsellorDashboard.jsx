@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 
 import {
   CalendarDays,
@@ -27,6 +28,8 @@ import {
 import {
   clearCredentials,
 } from "../../features/auth/authSlice";
+
+import DarkModeToggle from "../../components/DarkModeToggle";
 
 import {
   useGetCounsellorBookingsQuery,
@@ -94,6 +97,14 @@ function toIsoDateTime(date, time) {
 }
 
 
+function toDateKey(value) {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toISOString().slice(0, 10);
+}
+
+
 function getBookingId(booking) {
   return booking?._id || booking?.id;
 }
@@ -151,17 +162,11 @@ const getBookingSlotId = (booking) => {
     null
   );
 };
-// function getBookingSlot(booking) {
-//   return (
-//     booking?.slotId ||
-//     booking?.slot ||
-//     null
-//   );
-// }
 
 
 function CounsellorDashboard() {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const user = useSelector(
     (state) => state.auth.user
@@ -174,12 +179,22 @@ function CounsellorDashboard() {
    */
 
   const {
-    data: slots = [],
+    data: slotsResponse,
     isLoading: slotsLoading,
     isFetching: slotsFetching,
     error: slotsError,
     refetch: refetchSlots,
-  } = useGetSlotsQuery();
+  } = useGetSlotsQuery({
+    counsellorId: user?.id || user?._id,
+  }, {
+    skip: !user?.id && !user?._id,
+  });
+
+  const slots = useMemo(() => {
+    if (!slotsResponse) return [];
+    if (Array.isArray(slotsResponse)) return slotsResponse;
+    return slotsResponse?.slots || [];
+  }, [slotsResponse]);
 
 
   const [
@@ -207,7 +222,7 @@ function CounsellorDashboard() {
     error: bookingsError,
     refetch: refetchBookings,
   } = useGetCounsellorBookingsQuery(
-    user?.id || user?._id,
+    undefined,
     {
       skip: !user?.id && !user?._id,
     }
@@ -243,6 +258,13 @@ function CounsellorDashboard() {
     setNotice,
   ] = useState(null);
 
+  const [
+    selectedDate,
+    setSelectedDate,
+  ] = useState(() => {
+    const today = new Date();
+    return today.toISOString().slice(0, 10);
+  });
 
   const [
     form,
@@ -268,6 +290,61 @@ function CounsellorDashboard() {
         new Date(b.startAt)
     );
   }, [slots]);
+
+
+  /*
+   * ==========================================
+   * FILTER SLOTS BY SELECTED DATE
+   * ==========================================
+   */
+
+  const filteredSlots = useMemo(() => {
+    if (!selectedDate) return sortedSlots;
+
+    return sortedSlots.filter((slot) => {
+      const slotDate = toDateKey(slot.startAt);
+      return slotDate === selectedDate;
+    });
+  }, [sortedSlots, selectedDate]);
+
+
+  /*
+   * ==========================================
+   * GROUP BOOKINGS BY SLOT
+   * ==========================================
+   */
+
+  const bookingsBySlot = useMemo(() => {
+    const map = {};
+
+    for (const booking of bookings) {
+      const slotId = getBookingSlotId(booking);
+      if (!slotId) continue;
+
+      if (!map[slotId]) {
+        map[slotId] = [];
+      }
+      map[slotId].push(booking);
+    }
+
+    return map;
+  }, [bookings]);
+
+
+  /*
+   * ==========================================
+   * UNIQUE DATES FOR FILTER
+   * ==========================================
+   */
+
+  const availableDates = useMemo(() => {
+    const dates = new Set();
+    for (const slot of sortedSlots) {
+      const key = toDateKey(slot.startAt);
+      if (key) dates.add(key);
+    }
+    return Array.from(dates).sort();
+  }, [sortedSlots]);
 
 
   /*
@@ -484,6 +561,8 @@ function CounsellorDashboard() {
             " "
           )}.`,
       });
+
+      await refetchBookings();
     } catch (error) {
       setNotice({
         type: "error",
@@ -509,6 +588,7 @@ function CounsellorDashboard() {
       // Local logout still happens.
     } finally {
       dispatch(clearCredentials());
+      navigate("/login", { replace: true });
     }
   };
 
@@ -525,35 +605,35 @@ function CounsellorDashboard() {
 
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-slate-100 dark:bg-slate-900">
 
       {/* =====================================
           HEADER
       ====================================== */}
 
-      <header className="border-b border-slate-200 bg-white">
+      <header className="border-b border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
 
           <div>
-            <h1 className="text-xl font-bold text-slate-900">
+            <h1 className="text-xl font-bold text-slate-900 dark:text-white">
               SlotSync
             </h1>
 
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
               Counsellor Portal
             </p>
           </div>
 
 
           <div className="flex items-center gap-3">
-
-            <div className="hidden items-center gap-2 rounded-lg bg-slate-100 px-3 py-2 sm:flex">
+            <DarkModeToggle />
+            <div className="hidden items-center gap-2 rounded-lg bg-slate-100 px-3 py-2 sm:flex dark:bg-slate-700">
               <UserRound
                 size={17}
-                className="text-slate-500"
+                className="text-slate-500 dark:text-slate-300"
               />
 
-              <span className="text-sm font-medium text-slate-700">
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
                 {user?.name ||
                   user?.email ||
                   "Counsellor"}
@@ -567,7 +647,7 @@ function CounsellorDashboard() {
               disabled={
                 logoutState.isLoading
               }
-              className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600"
             >
               <LogOut size={16} />
 
@@ -587,7 +667,7 @@ function CounsellorDashboard() {
             HERO
         ====================================== */}
 
-        <section className="mb-6 rounded-2xl bg-white p-6 shadow-sm">
+        <section className="mb-6 rounded-2xl bg-white p-6 shadow-sm dark:bg-slate-800">
 
           <div className="flex flex-col justify-between gap-5 md:flex-row md:items-center">
 
@@ -596,11 +676,11 @@ function CounsellorDashboard() {
                 Counsellor Dashboard
               </p>
 
-              <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">
                 Manage your counselling sessions
               </h2>
 
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
                 Create appointment slots, manage
                 availability, and record booking
                 outcomes.
@@ -615,7 +695,7 @@ function CounsellorDashboard() {
                 slotsFetching ||
                 bookingsFetching
               }
-              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600"
             >
               <RefreshCw
                 size={16}
@@ -642,8 +722,8 @@ function CounsellorDashboard() {
           <div
             className={`mb-6 rounded-xl border p-4 text-sm ${
               notice.type === "success"
-                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                : "border-red-200 bg-red-50 text-red-700"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300"
+                : "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-900/30 dark:text-red-300"
             }`}
           >
             {notice.message}
@@ -655,7 +735,7 @@ function CounsellorDashboard() {
             CREATE SLOT
         ====================================== */}
 
-        <section className="mb-10 rounded-2xl bg-white p-6 shadow-sm">
+        <section className="mb-10 rounded-2xl bg-white p-6 shadow-sm dark:bg-slate-800">
 
           <div className="mb-5 flex items-center gap-3">
             <div className="rounded-lg bg-blue-50 p-2 text-blue-600">
@@ -663,11 +743,11 @@ function CounsellorDashboard() {
             </div>
 
             <div>
-              <h3 className="text-xl font-bold text-slate-900">
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white">
                 Create Slot
               </h3>
 
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-slate-500 dark:text-slate-400">
                 Create a new counselling appointment.
               </p>
             </div>
@@ -680,7 +760,7 @@ function CounsellorDashboard() {
           >
 
             <div>
-              <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+              <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-200">
                 Date
               </label>
 
@@ -694,14 +774,14 @@ function CounsellorDashboard() {
                       event.target.value,
                   }))
                 }
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:focus:ring-blue-900/40"
                 required
               />
             </div>
 
 
             <div>
-              <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+              <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-200">
                 Start Time
               </label>
 
@@ -715,14 +795,14 @@ function CounsellorDashboard() {
                       event.target.value,
                   }))
                 }
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:focus:ring-blue-900/40"
                 required
               />
             </div>
 
 
             <div>
-              <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+              <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-200">
                 End Time
               </label>
 
@@ -736,14 +816,14 @@ function CounsellorDashboard() {
                       event.target.value,
                   }))
                 }
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:focus:ring-blue-900/40"
                 required
               />
             </div>
 
 
             <div>
-              <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+              <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-200">
                 Capacity
               </label>
 
@@ -759,7 +839,7 @@ function CounsellorDashboard() {
                       event.target.value,
                   }))
                 }
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:focus:ring-blue-900/40"
                 required
               />
             </div>
@@ -788,24 +868,64 @@ function CounsellorDashboard() {
 
 
         {/* =====================================
+            DAY VIEW FILTER
+        ====================================== */}
+
+        <section className="mb-6">
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+
+            <div>
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+                My Slots
+              </h3>
+
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                Manage the counselling sessions you created.
+              </p>
+            </div>
+
+
+            <div className="flex items-center gap-2">
+
+              <CalendarDays
+                size={16}
+                className="text-slate-400"
+              />
+
+              <select
+                value={selectedDate}
+                onChange={(e) =>
+                  setSelectedDate(e.target.value)
+                }
+                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+              >
+                <option value="">
+                  All Dates
+                </option>
+
+                {availableDates.map((date) => (
+                  <option key={date} value={date}>
+                    {formatDate(date)}
+                  </option>
+                ))}
+              </select>
+
+            </div>
+
+          </div>
+
+        </section>
+
+
+        {/* =====================================
             SLOTS
         ====================================== */}
 
         <section className="mb-10">
 
-          <div className="mb-4">
-            <h3 className="text-xl font-bold text-slate-900">
-              My Slots
-            </h3>
-
-            <p className="mt-1 text-sm text-slate-500">
-              Manage the counselling sessions you created.
-            </p>
-          </div>
-
-
           {slotsError ? (
-            <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/30 dark:text-red-300">
               {getErrorMessage(
                 slotsError,
                 "Unable to load slots."
@@ -816,31 +936,35 @@ function CounsellorDashboard() {
               {[1, 2, 3].map((item) => (
                 <div
                   key={item}
-                  className="h-64 animate-pulse rounded-2xl bg-white shadow-sm"
+                  className="h-64 animate-pulse rounded-2xl bg-white shadow-sm dark:bg-slate-800"
                 />
               ))}
             </div>
-          ) : sortedSlots.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
+          ) : filteredSlots.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center dark:border-slate-600 dark:bg-slate-800">
 
               <CalendarDays
                 size={38}
                 className="mx-auto text-slate-400"
               />
 
-              <h4 className="mt-4 font-semibold text-slate-900">
-                No slots created yet
+              <h4 className="mt-4 font-semibold text-slate-900 dark:text-white">
+                {selectedDate
+                  ? "No slots on this date"
+                  : "No slots created yet"}
               </h4>
 
-              <p className="mt-1 text-sm text-slate-500">
-                Create your first counselling slot above.
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                {selectedDate
+                  ? "Try selecting a different date or create a new slot."
+                  : "Create your first counselling slot above."}
               </p>
 
             </div>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="space-y-6">
 
-              {sortedSlots.map((slot) => {
+              {filteredSlots.map((slot) => {
 
                 const slotId =
                   slot?._id ||
@@ -861,12 +985,16 @@ function CounsellorDashboard() {
                 const isOpen =
                   slot.status === "open";
 
+                const slotBookings =
+                  bookingsBySlot[slotId] || [];
+
                 return (
                   <article
                     key={slotId}
-                    className="flex flex-col rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200"
+                    className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 dark:bg-slate-800 dark:ring-slate-700"
                   >
 
+                    {/* Slot Header */}
                     <div className="flex items-start justify-between gap-3">
 
                       <div>
@@ -874,7 +1002,7 @@ function CounsellorDashboard() {
                           Counselling Session
                         </p>
 
-                        <h4 className="mt-1 text-lg font-bold text-slate-900">
+                        <h4 className="mt-1 text-lg font-bold text-slate-900 dark:text-white">
                           {formatDate(
                             slot.startAt
                           )}
@@ -885,11 +1013,11 @@ function CounsellorDashboard() {
                       <span
                         className={`rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${
                           slot.status === "open"
-                            ? "bg-emerald-100 text-emerald-700"
+                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
                             : slot.status ===
                                 "cancelled"
-                              ? "bg-red-100 text-red-700"
-                              : "bg-slate-100 text-slate-600"
+                              ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+                              : "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
                         }`}
                       >
                         {slot.status}
@@ -898,11 +1026,12 @@ function CounsellorDashboard() {
                     </div>
 
 
-                    <div className="mt-5 space-y-3">
+                    {/* Slot Details */}
+                    <div className="mt-4 flex flex-wrap gap-4 text-sm text-slate-600 dark:text-slate-300">
 
-                      <div className="flex items-center gap-3 text-sm text-slate-600">
+                      <div className="flex items-center gap-2">
                         <Clock3
-                          size={17}
+                          size={16}
                           className="text-slate-400"
                         />
 
@@ -918,9 +1047,9 @@ function CounsellorDashboard() {
                       </div>
 
 
-                      <div className="flex items-center gap-3 text-sm text-slate-600">
+                      <div className="flex items-center gap-2">
                         <Users
-                          size={17}
+                          size={16}
                           className="text-slate-400"
                         />
 
@@ -931,7 +1060,7 @@ function CounsellorDashboard() {
                       </div>
 
 
-                      <div className="text-sm font-medium text-slate-600">
+                      <div className="font-medium text-slate-600 dark:text-slate-300">
                         {seatsLeft} seat
                         {seatsLeft === 1
                           ? ""
@@ -942,8 +1071,9 @@ function CounsellorDashboard() {
                     </div>
 
 
+                    {/* Slot Actions */}
                     {isOpen && (
-                      <div className="mt-auto flex gap-2 pt-6">
+                      <div className="mt-4 flex gap-2">
 
                         <button
                           type="button"
@@ -955,7 +1085,7 @@ function CounsellorDashboard() {
                           disabled={
                             updateSlotState.isLoading
                           }
-                          className="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600"
                         >
                           Close
                         </button>
@@ -971,7 +1101,7 @@ function CounsellorDashboard() {
                           disabled={
                             updateSlotState.isLoading
                           }
-                          className="flex-1 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:opacity-50"
+                          className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:opacity-50 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300 dark:hover:bg-red-900/30"
                         >
                           <span className="inline-flex items-center justify-center gap-1">
                             <X size={15} />
@@ -982,184 +1112,122 @@ function CounsellorDashboard() {
                       </div>
                     )}
 
-                  </article>
-                );
-              })}
 
-            </div>
-          )}
+                    {/* Booking Roster for this Slot */}
+                    {slotBookings.length > 0 && (
+                      <div className="mt-5 border-t border-slate-100 pt-4 dark:border-slate-700">
 
-        </section>
+                        <h5 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-200">
+                          Bookings ({slotBookings.length})
+                        </h5>
 
+                        <div className="space-y-2">
 
-        {/* =====================================
-            BOOKINGS
-        ====================================== */}
+                          {slotBookings.map((booking) => {
 
-        <section>
+                            const bookingId =
+                              getBookingId(booking);
 
-          <div className="mb-4">
-            <h3 className="text-xl font-bold text-slate-900">
-              Booking Outcomes
-            </h3>
+                            const status =
+                              booking.status ||
+                              "booked";
 
-            <p className="mt-1 text-sm text-slate-500">
-              Record whether your students attended their sessions.
-            </p>
-          </div>
+                            return (
+                              <div
+                                key={bookingId}
+                                className="flex flex-col gap-3 rounded-lg bg-slate-50 p-3 sm:flex-row sm:items-center sm:justify-between dark:bg-slate-700"
+                              >
 
+                                <div>
 
-          {bookingsError ? (
-            <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-              {getErrorMessage(
-                bookingsError,
-                "Unable to load bookings."
-              )}
-            </div>
-          ) : bookings.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
+                                  <div className="flex flex-wrap items-center gap-2">
 
-              <Users
-                size={38}
-                className="mx-auto text-slate-400"
-              />
+                                    <span className="font-medium text-slate-900 dark:text-white">
+                                      {getBookingStudentName(
+                                        booking
+                                      )}
+                                    </span>
 
-              <h4 className="mt-4 font-semibold text-slate-900">
-                No bookings yet
-              </h4>
+                                    <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-semibold capitalize text-slate-600 dark:bg-slate-600 dark:text-slate-300">
+                                      {status.replace(
+                                        "_",
+                                        " "
+                                      )}
+                                    </span>
 
-              <p className="mt-1 text-sm text-slate-500">
-                Student bookings for your slots will appear here.
-              </p>
-
-            </div>
-          ) : (
-            <div className="space-y-3">
-
-              {bookings.map((booking) => {
-
-                const bookingId =
-                  getBookingId(booking);
-
-                const slot =
-                  getBookingSlot(
-                    booking
-                  );
-
-                const status =
-                  booking.status ||
-                  "booked";
-
-                return (
-                  <div
-                    key={bookingId}
-                    className="flex flex-col gap-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 md:flex-row md:items-center md:justify-between"
-                  >
-
-                    <div>
-
-                      <div className="flex flex-wrap items-center gap-2">
-
-                        <h4 className="font-semibold text-slate-900">
-                          {getBookingStudentName(
-                            booking
-                          )}
-                        </h4>
-
-                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold capitalize text-slate-600">
-                          {status.replace(
-                            "_",
-                            " "
-                          )}
-                        </span>
-
-                      </div>
+                                  </div>
 
 
-                      {getBookingStudentEmail(
-                        booking
-                      ) && (
-                        <p className="mt-1 text-sm text-slate-500">
-                          {getBookingStudentEmail(
-                            booking
-                          )}
-                        </p>
-                      )}
+                                  {getBookingStudentEmail(
+                                    booking
+                                  ) && (
+                                    <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                                      {getBookingStudentEmail(
+                                        booking
+                                      )}
+                                    </p>
+                                  )}
+
+                                </div>
 
 
-                      {slot && (
-                        <div className="mt-2 flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-500">
+                                {status === "booked" && (
+                                  <div className="flex gap-2">
 
-                          <span>
-                            {formatDate(
-                              slot.startAt
-                            )}
-                          </span>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleOutcome(
+                                          booking,
+                                          "attended"
+                                        )
+                                      }
+                                      disabled={
+                                        outcomeState.isLoading
+                                      }
+                                      className="inline-flex items-center justify-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50"
+                                    >
+                                      <CheckCircle2
+                                        size={13}
+                                      />
 
-                          <span>
-                            {formatTime(
-                              slot.startAt
-                            )}{" "}
-                            -{" "}
-                            {formatTime(
-                              slot.endAt
-                            )}
-                          </span>
+                                      Attended
+                                    </button>
+
+
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleOutcome(
+                                          booking,
+                                          "no_show"
+                                        )
+                                      }
+                                      disabled={
+                                        outcomeState.isLoading
+                                      }
+                                      className="inline-flex items-center justify-center gap-1 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-100 disabled:opacity-50 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300 dark:hover:bg-red-900/30"
+                                    >
+                                      <XCircle
+                                        size={13}
+                                      />
+
+                                      No Show
+                                    </button>
+
+                                  </div>
+                                )}
+
+                              </div>
+                            );
+                          })}
 
                         </div>
-                      )}
-
-                    </div>
-
-
-                    {status === "booked" && (
-                      <div className="flex flex-col gap-2 sm:flex-row">
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleOutcome(
-                              booking,
-                              "attended"
-                            )
-                          }
-                          disabled={
-                            outcomeState.isLoading
-                          }
-                          className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50"
-                        >
-                          <CheckCircle2
-                            size={16}
-                          />
-
-                          Attended
-                        </button>
-
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleOutcome(
-                              booking,
-                              "no_show"
-                            )
-                          }
-                          disabled={
-                            outcomeState.isLoading
-                          }
-                          className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:opacity-50"
-                        >
-                          <XCircle
-                            size={16}
-                          />
-
-                          No Show
-                        </button>
 
                       </div>
                     )}
 
-                  </div>
+                  </article>
                 );
               })}
 

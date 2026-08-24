@@ -7,6 +7,7 @@ import WaitlistEntry from "../models/WaitlistEntry.js";
 import AuditLog from "../models/AuditLog.js";
 
 import { AppError } from "../utils/AppError.js";
+import { broadcastAll } from "../utils/sse.js";
 
 import {
   assertBookingCanBeCancelled,
@@ -275,8 +276,8 @@ async function createBookingTransaction(
    * existing.endAt > requested.startAt
    */
 
-  const overlappingBooking =
-    await Booking.findOne({
+  const overlappingBookings =
+    await Booking.find({
       studentId,
 
       status: {
@@ -291,24 +292,20 @@ async function createBookingTransaction(
       })
       .session(session);
 
-  if (
-    overlappingBooking?.slotId
-  ) {
-    const existingSlot =
-      overlappingBooking.slotId;
+  for (const booking of overlappingBookings) {
+    if (booking.slotId) {
+      const existingSlot = booking.slotId;
+      const overlaps =
+        existingSlot.startAt < slot.endAt &&
+        existingSlot.endAt > slot.startAt;
 
-    const overlaps =
-      existingSlot.startAt <
-        slot.endAt &&
-      existingSlot.endAt >
-        slot.startAt;
-
-    if (overlaps) {
-      throw new AppError(
-        "Student already has an overlapping booking.",
-        409,
-        "BOOKING_OVERLAP"
-      );
+      if (overlaps) {
+        throw new AppError(
+          "Student already has an overlapping booking.",
+          409,
+          "BOOKING_OVERLAP"
+        );
+      }
     }
   }
 
@@ -411,7 +408,7 @@ export async function createBooking({
     "slot ID"
   );
 
-  return runTransaction(
+  const booking = await runTransaction(
     (session) =>
       createBookingTransaction(
         actor.id,
@@ -419,6 +416,24 @@ export async function createBooking({
         session
       )
   );
+
+  /*
+   * Broadcast SSE AFTER transaction commits.
+   * This ensures clients only see confirmed bookings.
+   */
+  if (booking) {
+    const slot = await Slot.findById(booking.slotId).lean();
+    if (slot) {
+      broadcastAll({
+        slotId: String(slot._id),
+        bookedCount: slot.bookedCount,
+        capacity: slot.capacity,
+        seatsLeft: slot.capacity - slot.bookedCount,
+      });
+    }
+  }
+
+  return booking;
 }
 
 
@@ -1023,7 +1038,7 @@ export async function cancelBooking({
     "booking ID"
   );
 
-  return runTransaction(
+  const result = await runTransaction(
     async (session) => {
       /*
        * ----------------------------------------------
@@ -1231,6 +1246,23 @@ export async function cancelBooking({
       };
     }
   );
+
+  /*
+   * Broadcast SSE AFTER transaction commits.
+   */
+  if (result?.booking) {
+    const slot = await Slot.findById(result.booking.slotId).lean();
+    if (slot) {
+      broadcastAll({
+        slotId: String(slot._id),
+        bookedCount: slot.bookedCount,
+        capacity: slot.capacity,
+        seatsLeft: slot.capacity - slot.bookedCount,
+      });
+    }
+  }
+
+  return result;
 }
 
 
@@ -1242,6 +1274,52 @@ function assertCounsellor(actor) {
       "FORBIDDEN"
     );
   }
+}
+
+
+/*
+ * ==================================================
+ * LIST COUNSELLOR BOOKINGS
+ * ==================================================
+ *
+ * Returns all bookings for slots owned by the
+ * authenticated counsellor.
+ */
+
+export async function listCounsellorBookings({
+  actor,
+  status,
+  limit = 50,
+}) {
+  assertCounsellor(actor);
+
+  const filter = {
+    counsellorId: actor.id,
+  };
+
+  if (status) {
+    filter.status = status;
+  }
+
+  return Booking.find(filter)
+    .sort({
+      createdAt: -1,
+      _id: -1,
+    })
+    .limit(limit)
+    .populate(
+      "slotId",
+      "counsellorId startAt endAt capacity bookedCount status"
+    )
+    .populate(
+      "studentId",
+      "name email"
+    )
+    .populate(
+      "counsellorId",
+      "name email"
+    )
+    .lean();
 }
 
 /*

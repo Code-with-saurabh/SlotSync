@@ -1,13 +1,13 @@
 import AuditLog from "../models/AuditLog.js";
+import { successResponse } from "../utils/apiResponse.js";
 
 export async function listAuditController(req, res, next) {
   try {
-    const {
-      entity,
-      id,
-      page,
-      limit,
-    } = req.query;
+    const entity = req.query.entity || undefined;
+    const id = req.query.id || undefined;
+    const pageNum = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
+    const skip = (pageNum - 1) * limitNum;
 
     const filter = {};
 
@@ -19,8 +19,6 @@ export async function listAuditController(req, res, next) {
       filter.entityId = id;
     }
 
-    const skip = (page - 1) * limit;
-
     const [
       logs,
       total,
@@ -31,29 +29,24 @@ export async function listAuditController(req, res, next) {
           _id: -1,
         })
         .skip(skip)
-        .limit(limit)
+        .limit(limitNum)
         .lean(),
 
       AuditLog.countDocuments(filter),
     ]);
 
     const totalPages =
-      Math.ceil(total / limit);
+      Math.ceil(total / limitNum);
 
-    return res.status(200).json({
-      success: true,
-
-      data: logs,
-
+    return successResponse(res, {
+      logs,
       pagination: {
-        page,
-        limit,
+        page: pageNum,
+        limit: limitNum,
         total,
         totalPages,
-        hasNextPage:
-          page < totalPages,
-        hasPreviousPage:
-          page > 1,
+        hasNextPage: pageNum < totalPages,
+        hasPreviousPage: pageNum > 1,
       },
     });
   } catch (error) {
