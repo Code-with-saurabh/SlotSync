@@ -38,12 +38,16 @@ export async function listSlotsController(
   next
 ) {
   try {
-    const slots =
+    const result =
       await listSlots(req.query);
 
     return successResponse(
       res,
-      { slots }
+      {
+        slots: result.slots,
+        nextCursor: result.nextCursor,
+        hasMore: result.hasMore,
+      }
     );
   } catch (error) {
     next(error);

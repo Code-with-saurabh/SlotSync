@@ -3,6 +3,7 @@ import { Router } from "express";
 import {
   createBookingController,
   listBookingsController,
+  listCounsellorBookingsController,
   getBookingController,
   cancelBookingController,
   markOutcome,
@@ -24,10 +25,31 @@ import {
   createBookingSchema,
   bookingIdSchema,
   listBookingSchema,
+  outcomeSchema,
+  listCounsellorBookingsSchema,
 } from "../validators/bookingSchemas.js";
-import { getAnalytics } from "../controllers/analyticsController.js";
+import { idempotencyCheck } from "../middleware/idempotency.js";
 
 const router = Router();
+
+/*
+ * Counsellor booking list.
+ *
+ * GET /api/bookings/counsellor
+ *
+ * IMPORTANT: This route MUST be defined before /:id
+ * to prevent Express from matching "counsellor" as an id param.
+ */
+router.get(
+  "/counsellor",
+  authenticate,
+  authorize("counsellor"),
+  validate(
+    listCounsellorBookingsSchema,
+    "query"
+  ),
+  listCounsellorBookingsController
+);
 
 /*
  * Student booking list.
@@ -54,6 +76,7 @@ router.post(
   "/",
   authenticate,
   authorize("student"),
+  idempotencyCheck,
   validate(
     createBookingSchema,
     "body"
@@ -98,16 +121,10 @@ router.patch(
   "/:id/outcome",
   authenticate,
   authorize("counsellor"),
+  validate(bookingIdSchema, "params"),
+  validate(outcomeSchema, "body"),
   markOutcome
 );
 
-
- 
-router.get(
-  "/counsellor/:id",
-  authenticate,
-  authorize("admin", "counsellor"),
-  getAnalytics
-);
 
 export default router;

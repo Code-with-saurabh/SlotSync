@@ -6,6 +6,7 @@ import { env } from "./config/env.js";
 import { globalRateLimiter } from "./middleware/rateLimit.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import cookieParser from "cookie-parser";
+import { requestLogger } from "./utils/logger.js";
 
 import healthRoutes from "./routes/healthRoutes.js";
 import testRoutes from "./routes/testRoutes.js";
@@ -15,6 +16,11 @@ import bookingRoutes from "./routes/bookingRoutes.js";
 import waitlistRoutes from "./routes/waitlistRoutes.js";
 import analyticsRoutes from "./routes/analyticsRoutes.js";
 import auditRoutes from "./routes/auditRoutes.js";
+import counsellorRoutes from "./routes/counsellorRoutes.js";
+
+import Slot from "./models/Slot.js";
+import { addClient } from "./utils/sse.js";
+
 const app = express();
 
 /*
@@ -36,6 +42,10 @@ app.use(
   })
 );
 
+/*
+ * Request logger with request-id
+ */
+app.use(requestLogger);
 
 /*
  * Body parsing
@@ -101,6 +111,42 @@ app.use(
   "/api/audit",
   auditRoutes
 );
+
+app.use(
+  "/api/counsellors",
+  counsellorRoutes
+);
+
+/*
+ * SSE: live seats-left for a slot
+ *
+ * GET /api/slots/:id/stream
+ *
+ * Clients receive an event whenever the slot's
+ * bookedCount changes.
+ */
+app.get("/api/slots/:id/stream", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const slot = await Slot.findById(id).lean();
+    if (!slot) {
+      return res.status(404).json({ error: "Slot not found." });
+    }
+
+    addClient(id, req, res);
+
+    res.write(`data: ${JSON.stringify({
+      slotId: id,
+      bookedCount: slot.bookedCount,
+      capacity: slot.capacity,
+      seatsLeft: slot.capacity - slot.bookedCount,
+    })}\n\n`);
+  } catch {
+    res.status(500).json({ error: "SSE setup failed." });
+  }
+});
+
 /*
  * 404
  */

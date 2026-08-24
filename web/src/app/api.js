@@ -127,6 +127,8 @@ export const api = createApi({
     "Bookings",
     "Waitlist",
     "Analytics",
+    "Counsellors",
+    "Audit",
   ],
 
   endpoints: () => ({}),

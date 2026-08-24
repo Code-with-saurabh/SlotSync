@@ -17,7 +17,6 @@ import RoleRoute from "./routes/RoleRoute";
 import StudentSlotsPage from "./pages/student/StudentSlotsPage";
 import CounsellorDashboard from "./pages/counsellor/CounsellorDashboard";
 import AdminDashboard from "./pages/admin/AdminDashboard";
-
 function LoadingScreen({ text = "Loading SlotSync..." }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50">

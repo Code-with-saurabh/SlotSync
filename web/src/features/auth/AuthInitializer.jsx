@@ -45,10 +45,19 @@ function AuthInitializer({
            * Ask backend to rotate the
            * refresh token and issue
            * a fresh access token.
+           *
+           * If no refresh token cookie exists,
+           * this will 401 — which is expected
+           * for first-time visitors.
            */
           const refreshResponse =
             await refresh().unwrap();
 
+          /*
+           * Response shape:
+           * { success: true, data: { accessToken: "..." } }
+           * RTK unwrap may return the full response or just data.
+           */
           const refreshData =
             refreshResponse?.data ||
             refreshResponse;
@@ -99,8 +108,12 @@ function AuthInitializer({
           /*
            * No valid refresh session.
            *
-           * This is a genuine unauthenticated
-           * state, so clearing Redux is correct.
+           * This is expected for:
+           * - First-time visitors (no cookie)
+           * - Expired refresh tokens
+           * - Revoked refresh tokens
+           *
+           * Clearing Redux is correct here.
            */
           dispatch(
             clearCredentials()

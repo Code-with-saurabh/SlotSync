@@ -35,3 +35,26 @@ export const listBookingSchema =
       .max(100)
       .default(20),
   });
+
+export const outcomeSchema = z.object({
+  outcome: z.enum(["attended", "no_show"]),
+});
+
+export const listCounsellorBookingsSchema =
+  z.object({
+    status: z
+      .enum([
+        "booked",
+        "attended",
+        "no_show",
+        "cancelled",
+      ])
+      .optional(),
+
+    limit: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(100)
+      .default(50),
+  });

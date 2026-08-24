@@ -171,6 +171,7 @@ export async function listSlots({
   to,
   counsellorId,
   status,
+  cursor,
   limit = 20,
 }) {
   const filter = {};
@@ -196,17 +197,52 @@ export async function listSlots({
     filter.status = status;
   }
 
-  return Slot.find(filter)
+  /*
+   * Cursor-based pagination: no skip().
+   *
+   * The cursor is the _id of the last document
+   * from the previous page. We fetch documents
+   * where _id > cursor, sorted by startAt, _id.
+   *
+   * Why not skip()? With large collections,
+   * skip(n) forces MongoDB to scan and discard
+   * n documents before returning results.
+   * Cursor pagination uses the _id index to
+   * jump directly to the right position — O(log n)
+   * vs O(n).
+   */
+  if (cursor) {
+    if (!mongoose.Types.ObjectId.isValid(cursor)) {
+      throw new AppError(
+        "Invalid cursor.",
+        422,
+        "VALIDATION_ERROR"
+      );
+    }
+    filter._id = { $gt: cursor };
+  }
+
+  const slots = await Slot.find(filter)
     .sort({
       startAt: 1,
       _id: 1,
     })
-    .limit(limit)
+    .limit(limit + 1)
     .populate(
       "counsellorId",
       "name email"
     )
     .lean();
+
+  const hasMore = slots.length > limit;
+  const data = hasMore ? slots.slice(0, limit) : slots;
+  const nextCursor = hasMore ? data[data.length - 1]._id : null;
+
+  return {
+    slots: data,
+    nextCursor,
+    hasMore,
+  };
 }
 
 export async function getSlotById(

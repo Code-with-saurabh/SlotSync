@@ -1,5 +1,7 @@
  @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 * {
   box-sizing: border-box;
 }
@@ -20,6 +22,12 @@ body {
   min-height: 100vh;
   background: #f8fafc;
   color: #0f172a;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.dark body {
+  background: #0f172a;
+  color: #f1f5f9;
 }
 
 button,

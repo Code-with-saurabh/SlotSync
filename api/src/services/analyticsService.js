@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import Slot from "../models/Slot.js";
+import User from "../models/User.js";
 import { AppError } from "../utils/AppError.js";
 
 // Must match ACTIVE_BOOKING_STATUSES in bookingService.js
@@ -32,6 +33,196 @@ function assertCanViewAnalytics(actor, counsellorId) {
     "FORBIDDEN"
   );
 }
+
+
+/*
+ * ==================================================
+ * INSTITUTE-WIDE ANALYTICS
+ * ==================================================
+ *
+ * Aggregates across ALL counsellors. Admin only.
+ * Single pipeline, zero JS loops.
+ */
+
+export async function getInstituteAnalytics({ actor }) {
+  if (actor.role !== "admin") {
+    throw new AppError(
+      "Only admins can view institute-wide analytics.",
+      403,
+      "FORBIDDEN"
+    );
+  }
+
+  const now = new Date();
+  const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+  const [result] = await Slot.aggregate([
+    // No $match — all slots across all counsellors
+    {
+      $lookup: {
+        from: "bookings",
+        localField: "_id",
+        foreignField: "slotId",
+        as: "bookings",
+      },
+    },
+
+    {
+      $facet: {
+        /* ---- total counsellors ---- */
+        totalCounsellors: [
+          {
+            $group: {
+              _id: "$counsellorId",
+            },
+          },
+          { $count: "count" },
+        ],
+
+        /* ---- total slots ---- */
+        totalSlots: [{ $count: "count" }],
+
+        /* ---- capacity / utilisation ---- */
+        capacity: [
+          {
+            $group: {
+              _id: null,
+              offeredSeats: { $sum: "$capacity" },
+              bookedSeats: { $sum: "$bookedCount" },
+            },
+          },
+        ],
+
+        /* ---- booking-level stats ---- */
+        bookingStats: [
+          { $unwind: "$bookings" },
+          {
+            $addFields: {
+              leadMinutes: {
+                $divide: [
+                  { $subtract: ["$startAt", "$bookings.createdAt"] },
+                  60000,
+                ],
+              },
+            },
+          },
+          {
+            $group: {
+              _id: null,
+              totalBookings: { $sum: 1 },
+              confirmedBookings: {
+                $sum: {
+                  $cond: [{ $in: ["$bookings.status", CONFIRMED_STATUSES] }, 1, 0],
+                },
+              },
+              noShowBookings: {
+                $sum: { $cond: [{ $eq: ["$bookings.status", "no_show"] }, 1, 0] },
+              },
+              cancelledBookings: {
+                $sum: { $cond: [{ $eq: ["$bookings.status", "cancelled"] }, 1, 0] },
+              },
+              avgLeadMinutes: {
+                $avg: {
+                  $cond: [
+                    { $in: ["$bookings.status", CONFIRMED_STATUSES] },
+                    "$leadMinutes",
+                    null,
+                  ],
+                },
+              },
+            },
+          },
+        ],
+
+        /* ---- lead-time buckets ---- */
+        leadBuckets: [
+          { $unwind: "$bookings" },
+          { $match: { "bookings.status": { $in: CONFIRMED_STATUSES } } },
+          {
+            $addFields: {
+              leadMinutes: {
+                $divide: [
+                  { $subtract: ["$startAt", "$bookings.createdAt"] },
+                  60000,
+                ],
+              },
+            },
+          },
+          {
+            $bucket: {
+              groupBy: "$leadMinutes",
+              boundaries: [0, 60, 240, 1440, Infinity],
+              default: "unbucketed",
+              output: { count: { $sum: 1 } },
+            },
+          },
+        ],
+
+        /* ---- busiest 5 slots ---- */
+        busiestSlots: [
+          { $unwind: "$bookings" },
+          { $match: { "bookings.status": { $in: CONFIRMED_STATUSES } } },
+          {
+            $group: {
+              _id: "$_id",
+              startAt: { $first: "$startAt" },
+              counsellorId: { $first: "$counsellorId" },
+              confirmedCount: { $sum: 1 },
+            },
+          },
+          { $sort: { confirmedCount: -1 } },
+          { $limit: 5 },
+        ],
+
+        /* ---- last 14 days, IST bucketed ---- */
+        dailySeries: [
+          { $unwind: "$bookings" },
+          { $match: { "bookings.createdAt": { $gte: fourteenDaysAgo } } },
+          {
+            $group: {
+              _id: {
+                $dateToString: {
+                  format: "%Y-%m-%d",
+                  date: "$bookings.createdAt",
+                  timezone: "Asia/Kolkata",
+                },
+              },
+              count: { $sum: 1 },
+            },
+          },
+          { $sort: { _id: 1 } },
+        ],
+      },
+    },
+  ]);
+
+  const totalCounsellors = result.totalCounsellors[0]?.count ?? 0;
+  const totalSlots = result.totalSlots[0]?.count ?? 0;
+  const { offeredSeats = 0, bookedSeats = 0 } = result.capacity[0] ?? {};
+  const {
+    totalBookings = 0,
+    confirmedBookings = 0,
+    noShowBookings = 0,
+    cancelledBookings = 0,
+    avgLeadMinutes = 0,
+  } = result.bookingStats[0] ?? {};
+
+  const pct = (num, den) => (den > 0 ? Number(((num / den) * 100).toFixed(2)) : 0);
+
+  return {
+    totalCounsellors,
+    totalSlots,
+    totalConfirmedBookings: confirmedBookings,
+    utilisationPercent: pct(bookedSeats, offeredSeats),
+    noShowPercent: pct(noShowBookings, confirmedBookings),
+    cancellationPercent: pct(cancelledBookings, totalBookings),
+    averageLeadTimeMinutes: Math.round(avgLeadMinutes),
+    leadTimeBuckets: result.leadBuckets,
+    busiestSlots: result.busiestSlots,
+    dailySeriesIST: result.dailySeries,
+  };
+}
+
 
 export async function getCounsellorAnalytics({ actor, counsellorId }) {
   assertObjectId(counsellorId, "counsellor ID");

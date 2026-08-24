@@ -1,6 +1,7 @@
 import {
   createBooking,
   listStudentBookings,
+  listCounsellorBookings,
   getStudentBookingById,
   cancelBooking,
   markBookingOutcome
@@ -120,6 +121,31 @@ export async function markOutcome(req, res, next) {
     return successResponse(res, {
       booking,
     });
+  } catch (error) {
+    next(error);
+  }
+}
+
+
+export async function listCounsellorBookingsController(
+  req,
+  res,
+  next
+) {
+  try {
+    const bookings =
+      await listCounsellorBookings({
+        actor: req.user,
+        status: req.query.status,
+        limit: req.query.limit,
+      });
+
+    return successResponse(
+      res,
+      {
+        bookings,
+      }
+    );
   } catch (error) {
     next(error);
   }
