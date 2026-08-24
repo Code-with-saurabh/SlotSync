@@ -152,6 +152,19 @@ dispatch(
               : "Sign in"}
           </button>
         </form>
+        <p className="mt-6 text-center text-sm text-slate-500">
+          Already have an account?{" "}
+
+          <button
+            type="button"
+            onClick={() =>
+              navigate("/register")
+            }
+            className="font-semibold text-blue-600 hover:text-blue-700"
+          >
+            Sign up
+          </button>
+        </p>
       </div>
     </div>
   );
