@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
 import {
   BarChart,
   Bar,
@@ -8,6 +10,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { LogOut } from "lucide-react";
 
 import DarkModeToggle from "../../components/DarkModeToggle";
 
@@ -29,6 +32,9 @@ import {
   useUpdateCounsellorMutation,
   useUpdateCounsellorStatusMutation,
 } from "../../features/counsellor/counsellorApi";
+
+import { useLogoutMutation } from "../../features/auth/authApi";
+import { clearCredentials } from "../../features/auth/authSlice";
 
 
 /*
@@ -165,6 +171,8 @@ const TABS = [
  */
 
 function AdminDashboard() {
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [activeTab, setActiveTab] = useState("slots");
   const [notice, setNotice] = useState(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -183,6 +191,14 @@ function AdminDashboard() {
   // Analytics state
   const [analyticsCounsellorId, setAnalyticsCounsellorId] = useState("");
   const [analyticsMode, setAnalyticsMode] = useState("institute");
+
+  const [logout, logoutState] = useLogoutMutation();
+
+  const handleLogout = async () => {
+    try { await logout().unwrap(); } catch { }
+    dispatch(clearCredentials());
+    navigate("/login", { replace: true });
+  };
 
 
   /*
@@ -432,8 +448,17 @@ function AdminDashboard() {
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">Admin Dashboard</h1>
             <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">Manage SlotSync slots, counsellors, analytics and activity.</p>
           </div>
-          <div>
+          <div className="flex items-center gap-3">
             <DarkModeToggle />
+            <button
+              type="button"
+              onClick={handleLogout}
+              disabled={logoutState.isLoading}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600"
+            >
+              <LogOut size={16} />
+              {logoutState.isLoading ? "Signing out..." : "Logout"}
+            </button>
           </div>
         </div>
 

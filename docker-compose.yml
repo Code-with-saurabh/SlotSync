@@ -24,8 +24,13 @@ services:
       NODE_ENV: production
       PORT: 4000
       MONGO_URI: mongodb://mongo:27017/slotsync?replicaSet=rs0
-      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      CORS_ORIGIN: http://localhost:5173
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-slotsync_prod_access_secret}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-slotsync_prod_refresh_secret}
+      JWT_ACCESS_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      COOKIE_SECURE: "false"
+      COOKIE_SAME_SITE: lax
     ports:
       - "4000:4000"
     depends_on:
@@ -36,6 +41,8 @@ services:
     build:
       context: ./web
       dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:4000/api
     container_name: slotsync-web
     ports:
       - "5173:5173"
