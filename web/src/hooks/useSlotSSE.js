@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-
+import { useDispatch } from "react-redux";
 import { api } from "../app/api";
 
 const API_URL =
@@ -57,7 +57,7 @@ export function useSlotSSE(slotId) {
   const slotIdRef = useRef(slotId);
   slotIdRef.current = slotId;
 
-  const dispatch = api.dispatch;
+  const dispatch = useDispatch();
 
   useEffect(() => {
     if (!slotId) return;
@@ -84,13 +84,6 @@ export function useSlotSSE(slotId) {
         )
       );
 
-      /*
-       * When a slot update arrives via SSE, it
-       * means someone booked/cancelled/promoted.
-       * Invalidate Bookings + Waitlist so the
-       * current user sees their own updated state
-       * without manual refresh.
-       */
       dispatch(
         api.util.invalidateTags([
           { type: "Bookings" },

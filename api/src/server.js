@@ -1,6 +1,7 @@
 import app from "./app.js";
 import { env } from "./config/env.js";
 import { connectDatabase } from "./config/db.js";
+import { initSocketIO } from "./utils/socketManager.js";
 
 async function bootstrap() {
   try {
@@ -11,6 +12,8 @@ async function bootstrap() {
         `SlotSync API running on http://localhost:${env.port}`
       );
     });
+
+    initSocketIO(server);
 
     const shutdown = async (signal) => {
       console.log(`${signal} received. Shutting down...`);

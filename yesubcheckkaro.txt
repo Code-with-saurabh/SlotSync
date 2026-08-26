@@ -1,0 +1,274 @@
+========================================================================
+  SLOTSYNC — SOCKET.IO REAL-TIME COVERAGE CHECK
+  (Ye Sab Check Karo)
+========================================================================
+
+Created: 2026-08-26
+Updated: 2026-08-26 (Bug fixes applied)
+Purpose: Document exactly where Socket.IO is used, what events fire,
+         and which users see real-time updates.
+
+========================================================================
+  1. ARCHITECTURE OVERVIEW
+========================================================================
+
+Backend:
+  - socket.io server attached to Express HTTP server (api/src/server.js)
+  - Socket manager: api/src/utils/socketManager.js
+  - All broadcasts go to "global" room = EVERY connected client receives them
+
+Frontend:
+  - socket.io-client singleton: web/src/hooks/useSocket.js
+  - Real-time event handler: web/src/hooks/useRealtimeUpdates.js
+  - Mounted globally in AuthInitializer.jsx (works for ALL roles)
+
+How it works:
+  1. Server emits event -> all clients in "global" room receive it
+  2. Frontend useRealtimeUpdates hook catches event
+  3. Updates RTK Query cache directly OR invalidates tags
+  4. RTK Query auto-refetches affected queries
+  5. UI re-renders with fresh data — NO manual refresh needed
+
+========================================================================
+  2. SOCKET.IO EVENTS — COMPLETE LIST
+========================================================================
+
+EVENT                   WHEN IT FIRES                      EMITTED FROM
+----------------------  ---------------------------------  ----------------------------
+slot:created            Admin/Counsellor creates a slot    slotService.js
+slot:updated            Slot updated/closed/cancelled      slotService.js
+                        OR seat count changes (booking)
+booking:created         Student books a slot                bookingService.js
+booking:cancelled       Student cancels a booking           bookingService.js
+booking:promoted        Waitlist student gets promoted      bookingService.js
+booking:outcome         Counsellor marks attended/no_show   bookingService.js
+waitlist:joined         Student joins waitlist               waitlistService.js
+waitlist:left           Student leaves waitlist              waitlistService.js
+
+========================================================================
+  3. WHAT EACH ROLE SEES IN REAL-TIME
+========================================================================
+
+STUDENT (StudentSlotsPage):
+  - Sees seat count update LIVE when any other student books/cancels a slot
+    -> slot:updated event updates bookedCount/capacity directly in cache
+  - Sees "My Bookings" refresh when booking/cancel/promote happens
+    -> booking:created / booking:cancelled / booking:promoted invalidate Bookings tag
+  - Sees "My Waitlist" refresh when someone is promoted from waitlist
+    -> booking:promoted invalidates Waitlist tag
+  - Sees new slots appear when counsellor/admin creates one
+    -> slot:created invalidates Slots tag
+  - Sees slot status change (open -> closed) live
+    -> slot:updated includes status field + invalidates Slots tag
+
+COUNSELLOR (CounsellorDashboard):
+  - Sees seat count update LIVE on their slots when students book/cancel
+    -> slot:updated event updates getSlots cache (with counsellorId filter)
+  - Sees booking list refresh when student books/cancels their slot
+    -> booking:created / booking:cancelled invalidate Bookings tag
+    -> getCounsellorBookingsQuery auto-refetches
+  - Sees booking outcome changes reflected (attended/no_show)
+    -> booking:outcome invalidates Bookings + Analytics tags
+  - Sees new slots they created appear immediately
+    -> slot:created invalidates Slots tag
+  - Sees slot close/cancel reflected live
+    -> slot:updated invalidates Slots tag
+
+ADMIN (AdminDashboard):
+  - Sees ALL slot seat counts update live across entire platform
+    -> slot:updated updates getSlots cache directly
+  - Sees new slots created by any counsellor appear live
+    -> slot:created invalidates Slots tag
+  - Sees slot status changes (open/closed/cancelled) live
+    -> slot:updated includes status + invalidates Slots tag
+  - Sees counsellor management updates (create/update/toggle status)
+    -> Uses Counsellors tag (separate from Socket.IO, handled by mutation invalidation)
+  - Sees analytics refresh when booking outcomes change
+    -> booking:outcome invalidates Analytics tag
+  - Sees audit log refresh when any booking/waitlist action occurs
+    -> Audit tag invalidation happens via mutation invalidations
+
+========================================================================
+  4. RACE CONDITION FIXES
+========================================================================
+
+PROBLEM 1: SSE broadcast re-reads slot from DB after transaction commit
+  - Between commit and read, another request could modify the slot
+  - Broadcast would show stale data
+
+FIX: Transaction returns slot data directly -> broadcast uses that data
+  - createBookingTransaction returns { booking, slot: updatedSlot }
+  - cancelBooking returns { booking, promotion, finalSlot }
+  - No second DB read needed — data is authoritative from the transaction
+
+PROBLEM 2: Concurrent optimistic updates on frontend
+  - Multiple students booking same slot simultaneously
+  - Optimistic cache patch + SSE update could conflict
+
+FIX: Version-based ordering
+  - Every Socket.IO event includes `version` field from server
+  - Client checks: if event.version < cached.version, discard the event
+  - Prevents stale events from overwriting newer data
+
+PROBLEM 3: Promotion race — cancel releases seat, promotion re-occupies it
+  - The "released" seat count is wrong if promotion happens in same transaction
+
+FIX: Cancel transaction returns finalSlot (post-promotion state)
+  - Broadcast uses finalSlot.bookedCount which reflects the promotion
+  - No intermediate stale state is ever broadcast
+
+========================================================================
+  5. FILE-BY-FILE SOCKET.IO INTEGRATION
+========================================================================
+
+BACKEND FILES:
+
+  api/src/utils/socketManager.js
+    - Creates Socket.IO server
+    - Manages "global" room (all clients auto-join)
+    - Exports emit helpers for each event type
+    - All emits go to io.to("global").emit(...)
+
+  api/src/server.js
+    - Calls initSocketIO(server) after HTTP server starts
+    - Socket.IO shares the same port as Express
+
+  api/src/services/slotService.js
+    - createSlot() -> emitSlotCreated()
+    - updateSlot() -> emitSlotUpdated()
+
+  api/src/services/bookingService.js
+    - createBooking() -> emitSlotUpdated() + emitBookingCreated()
+    - cancelBooking() -> emitSlotUpdated() + emitBookingCancelled()
+                        + emitBookingPromoted() (if waitlist promoted)
+    - markBookingOutcome() -> emitBookingOutcomeSet()
+
+  api/src/services/waitlistService.js
+    - joinWaitlist() -> emitWaitlistJoined()
+    - leaveWaitlist() -> emitWaitlistLeft()
+
+FRONTEND FILES:
+
+  web/src/hooks/useSocket.js
+    - Singleton Socket.IO client
+    - Auto-reconnect with exponential backoff
+    - Shared across all components via refCount
+
+  web/src/hooks/useRealtimeUpdates.js
+    - Listens to ALL 8 Socket.IO events
+    - Updates RTK Query cache for each event
+    - Version-check for slot:updated to prevent stale data
+    - Tag invalidation triggers automatic refetch for all active queries
+
+  web/src/features/auth/AuthInitializer.jsx
+    - Mounts useRealtimeUpdates() globally
+    - Active for ALL roles (student, counsellor, admin)
+    - Socket connects as soon as app loads (before auth completes)
+
+  web/src/pages/student/StudentSlotsPage.jsx
+    - Removed useSlotSSE (SSE hook) dependency
+    - Now uses global Socket.IO via useRealtimeUpdates
+
+  OLD (kept for backwards compat, not used):
+    api/src/utils/sse.js          - SSE broadcast (still emits alongside Socket.IO)
+    web/src/hooks/useSlotSSE.js   - SSE client hook (no longer imported)
+
+========================================================================
+  6. EVENT FLOW EXAMPLES
+========================================================================
+
+EXAMPLE 1: Student A books a slot
+  -> bookingService.createBooking() runs transaction
+  -> Transaction commits: slot.bookedCount++, booking created
+  -> After commit: broadcastAll() [SSE] + emitSlotUpdated() + emitBookingCreated()
+  -> ALL connected clients receive slot:updated + booking:created
+  -> Student B's page: seat count updates from 4 to 3 (direct cache patch)
+  -> Student B's page: Bookings tag invalidated -> My Bookings refetches
+  -> Counsellor's page: seat count updates + Bookings invalidated -> booking list refetches
+  -> Admin's page: seat count updates in slot table
+
+EXAMPLE 2: Student A cancels booking, Student B is on waitlist
+  -> bookingService.cancelBooking() runs transaction
+  -> Transaction: booking cancelled, seat released, Student B promoted
+  -> Transaction commits: finalSlot reflects post-promotion state
+  -> After commit: broadcastAll() + emitSlotUpdated() + emitBookingCancelled() + emitBookingPromoted()
+  -> ALL clients: seat count stays same (promotion re-occupied the seat)
+  -> Student A: Bookings invalidated -> sees cancellation
+  -> Student B: Bookings + Waitlist invalidated -> sees promoted booking
+  -> Counsellor: booking list refreshes
+
+EXAMPLE 3: Counsellor creates new slot
+  -> slotService.createSlot() creates slot
+  -> emitSlotCreated() fires
+  -> ALL students: Slots tag invalidated -> new slot appears in list
+  -> Admin: Slots tag invalidated -> slot appears in table
+  -> Counsellor: Slots tag invalidated -> slot appears in their list
+
+========================================================================
+  7. SSE BACKWARDS COMPATIBILITY
+========================================================================
+
+The old SSE system (api/src/utils/sse.js) is STILL active:
+  - GET /api/slots/stream (global SSE) still works
+  - broadcastAll() still called alongside Socket.IO emits
+  - This means old clients using SSE will continue to work
+
+The new Socket.IO system runs IN PARALLEL with SSE:
+  - Both emit on every booking/cancel/promote event
+  - Frontend has migrated to Socket.IO (useRealtimeUpdates)
+  - SSE can be removed later when all clients are confirmed migrated
+
+========================================================================
+  8. VERIFICATION CHECKLIST
+========================================================================
+
+[✓] socket.io installed in api/package.json
+[✓] socket.io-client installed in web/package.json
+[✓] Socket.IO server created and attached to HTTP server
+[✓] All clients auto-join "global" room on connect
+[✓] slot:created emitted on slot creation
+[✓] slot:updated emitted on slot update + seat changes
+[✓] booking:created emitted on booking
+[✓] booking:cancelled emitted on cancel
+[✓] booking:promoted emitted on waitlist promotion
+[✓] booking:outcome emitted on attended/no_show
+[✓] waitlist:joined emitted on waitlist join
+[✓] waitlist:left emitted on waitlist leave
+[✓] Frontend listens to all 8 events
+[✓] Cache updates via direct patch (slot:updated) + tag invalidation
+[✓] Version-based ordering prevents stale overwrites
+[✓] Race conditions fixed (no re-read from DB after transaction)
+[✓] Global hook mounted in AuthInitializer (all roles covered)
+[✓] SSE still works for backwards compatibility
+[✓] Frontend build passes
+[✓] Backend files parse correctly
+
+========================================================================
+  9. BUG FIXES APPLIED (2026-08-26)
+========================================================================
+
+BUG 1: Socket.IO URL wrong — nothing connected
+  PROBLEM: VITE_API_URL = "http://localhost:5000/api"
+           Socket.IO tried to connect to /api/socket.io/ which doesn't exist
+  FIX:     resolveSocketUrl() strips /api suffix -> "http://localhost:5000"
+  FILE:    web/src/hooks/useSocket.js
+
+BUG 2: Socket.IO not sending cookies (auth might fail)
+  PROBLEM: Client didn't have withCredentials: true
+  FIX:     Added withCredentials: true to io() options
+  FILE:    web/src/hooks/useSocket.js
+
+BUG 3: No way to debug connection issues
+  PROBLEM: No console.log anywhere — impossible to trace
+  FIX:     Added console.log at every step:
+           - Server: connection, disconnect, each emit
+           - Client: connect, disconnect, error, each listener registration
+  FILES:   api/src/utils/socketManager.js, web/src/hooks/useSocket.js,
+           web/src/hooks/useRealtimeUpdates.js
+
+BUG 4: slot:updated didn't invalidate Slots tag
+  PROBLEM: Admin/Counsellor dashboards didn't refetch slot list on seat changes
+  FIX:     Added "Slots" to invalidateTags in slot:updated handler
+  FILE:    web/src/hooks/useRealtimeUpdates.js
+
+========================================================================

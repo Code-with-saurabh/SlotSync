@@ -29,15 +29,37 @@ const app = express();
 
 app.disable("x-powered-by");
 
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "blob:"],
+      connectSrc: ["'self'", "ws:", "wss:", "http://localhost:5000", "http://localhost:5173"],
+      fontSrc: ["'self'", "data:"],
+      objectSrc: ["'none'"],
+      frameAncestors: ["'none'"],
+      formAction: ["'self'"],
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+}));
 app.use(cookieParser());
 
 /*
  * CORS
  */
+const allowedOrigins = [
+  env.corsOrigin,
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "http://127.0.0.1:5173",
+];
+
 app.use(
   cors({
-    origin: env.corsOrigin,
+    origin: allowedOrigins,
     credentials: true,
   })
 );

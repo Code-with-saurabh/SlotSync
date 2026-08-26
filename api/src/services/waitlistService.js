@@ -6,6 +6,11 @@ import Booking from "../models/Booking.js";
 import User from "../models/User.js";
 
 import { AppError } from "../utils/AppError.js";
+import {
+  emitWaitlistJoined,
+  emitWaitlistLeft,
+} from "../utils/socketManager.js";
+import { broadcastAll } from "../utils/sse.js";
 
 const MAX_TRANSACTION_RETRIES = 3;
 
@@ -168,7 +173,7 @@ export async function joinWaitlist({
     "slot ID"
   );
 
-  return runTransaction(
+  const entry = await runTransaction(
     async (session) => {
       /*
        * --------------------------------------------------
@@ -460,6 +465,29 @@ export async function joinWaitlist({
       return entry;
     }
   );
+
+  if (entry) {
+    emitWaitlistJoined({
+      entryId: String(entry._id),
+      slotId: String(entry.slotId),
+      studentId: String(entry.studentId),
+      position: entry.position,
+    });
+
+    const freshSlot = await Slot.findById(entry.slotId).lean();
+    if (freshSlot) {
+      broadcastAll({
+        slotId: String(freshSlot._id),
+        bookedCount: freshSlot.bookedCount,
+        capacity: freshSlot.capacity,
+        seatsLeft: freshSlot.capacity - freshSlot.bookedCount,
+        version: freshSlot.version,
+        status: freshSlot.status,
+      });
+    }
+  }
+
+  return entry;
 }
 
 /*
@@ -552,7 +580,7 @@ export async function leaveWaitlist({
     "waitlist entry ID"
   );
 
-  return runTransaction(
+  const entry = await runTransaction(
     async (session) => {
       const entry =
         await WaitlistEntry.findOne({
@@ -595,4 +623,26 @@ export async function leaveWaitlist({
       return entry;
     }
   );
+
+  if (entry) {
+    emitWaitlistLeft({
+      entryId: String(entry._id),
+      slotId: String(entry.slotId),
+      studentId: String(entry.studentId),
+    });
+
+    const freshSlot = await Slot.findById(entry.slotId).lean();
+    if (freshSlot) {
+      broadcastAll({
+        slotId: String(freshSlot._id),
+        bookedCount: freshSlot.bookedCount,
+        capacity: freshSlot.capacity,
+        seatsLeft: freshSlot.capacity - freshSlot.bookedCount,
+        version: freshSlot.version,
+        status: freshSlot.status,
+      });
+    }
+  }
+
+  return entry;
 }

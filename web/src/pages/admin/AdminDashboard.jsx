@@ -13,6 +13,7 @@ import {
 import { LogOut } from "lucide-react";
 
 import DarkModeToggle from "../../components/DarkModeToggle";
+import RealtimeStatus from "../../components/RealtimeStatus";
 
 import {
   useGetSlotsQuery,
@@ -449,6 +450,7 @@ function AdminDashboard() {
             <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">Manage SlotSync slots, counsellors, analytics and activity.</p>
           </div>
           <div className="flex items-center gap-3">
+            <RealtimeStatus />
             <DarkModeToggle />
             <button
               type="button"
