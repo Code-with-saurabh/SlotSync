@@ -16,10 +16,23 @@ import {
   setInitialized,
 } from "./authSlice";
 
+import { useRealtimeUpdates } from "../../hooks/useRealtimeUpdates";
+import { useGlobalSSE } from "../../hooks/useGlobalSSE";
+import { usePollingFallback } from "../../hooks/usePollingFallback";
+
 function AuthInitializer({
   children,
 }) {
   const dispatch = useDispatch();
+
+  /* Layer 1: Socket.IO real-time events */
+  useRealtimeUpdates();
+
+  /* Layer 2: SSE global stream */
+  useGlobalSSE();
+
+  /* Layer 3: Polling fallback when Socket.IO is down */
+  usePollingFallback();
 
   const [refresh] =
     useRefreshMutation();
@@ -40,24 +53,9 @@ function AuthInitializer({
     const initializeAuth =
       async () => {
         try {
-          /*
-           * Step 1:
-           * Ask backend to rotate the
-           * refresh token and issue
-           * a fresh access token.
-           *
-           * If no refresh token cookie exists,
-           * this will 401 — which is expected
-           * for first-time visitors.
-           */
           const refreshResponse =
             await refresh().unwrap();
 
-          /*
-           * Response shape:
-           * { success: true, data: { accessToken: "..." } }
-           * RTK unwrap may return the full response or just data.
-           */
           const refreshData =
             refreshResponse?.data ||
             refreshResponse;
@@ -71,14 +69,6 @@ function AuthInitializer({
             );
           }
 
-          /*
-           * Step 2:
-           * Store the new access token.
-           *
-           * User is temporarily null.
-           * We populate it immediately
-           * using /auth/me.
-           */
           dispatch(
             setCredentials({
               user: null,
@@ -86,11 +76,6 @@ function AuthInitializer({
             })
           );
 
-          /*
-           * Step 3:
-           * Ask backend who the
-           * authenticated user is.
-           */
           const meResponse =
             await getMe().unwrap();
 
@@ -105,16 +90,6 @@ function AuthInitializer({
             })
           );
         } catch {
-          /*
-           * No valid refresh session.
-           *
-           * This is expected for:
-           * - First-time visitors (no cookie)
-           * - Expired refresh tokens
-           * - Revoked refresh tokens
-           *
-           * Clearing Redux is correct here.
-           */
           dispatch(
             clearCredentials()
           );

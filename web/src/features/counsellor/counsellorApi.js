@@ -94,8 +94,7 @@ export const counsellorApi =
       /*
        * GET /api/bookings/counsellor
        *
-       * Lists all bookings for the authenticated
-       * counsellor's slots.
+       * pollingInterval: 8000 — auto-refetch every 8s
        */
       getCounsellorBookings:
         builder.query({
@@ -116,6 +115,8 @@ export const counsellorApi =
               id: b._id,
             })),
           ],
+
+          pollingInterval: 8000,
         }),
 
 

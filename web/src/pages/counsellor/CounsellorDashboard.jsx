@@ -30,6 +30,7 @@ import {
 } from "../../features/auth/authSlice";
 
 import DarkModeToggle from "../../components/DarkModeToggle";
+import RealtimeStatus from "../../components/RealtimeStatus";
 
 import {
   useGetCounsellorBookingsQuery,
@@ -626,6 +627,7 @@ function CounsellorDashboard() {
 
 
           <div className="flex items-center gap-3">
+            <RealtimeStatus />
             <DarkModeToggle />
             <div className="hidden items-center gap-2 rounded-lg bg-slate-100 px-3 py-2 sm:flex dark:bg-slate-700">
               <UserRound

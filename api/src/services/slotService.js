@@ -4,6 +4,11 @@ import Slot from "../models/Slot.js";
 import User from "../models/User.js";
 
 import { AppError } from "../utils/AppError.js";
+import {
+  emitSlotCreated,
+  emitSlotUpdated,
+} from "../utils/socketManager.js";
+import { broadcastAll } from "../utils/sse.js";
 
 function validateTimeRange(
   startAt,
@@ -162,6 +167,28 @@ export async function createSlot({
       version: 0,
       status: "open",
     });
+
+  emitSlotCreated({
+    slotId: String(slot._id),
+    counsellorId: String(slot.counsellorId),
+    startAt: slot.startAt,
+    endAt: slot.endAt,
+    capacity: slot.capacity,
+    bookedCount: slot.bookedCount,
+    status: slot.status,
+    version: slot.version,
+  });
+
+  broadcastAll({
+    slotId: String(slot._id),
+    counsellorId: String(slot.counsellorId),
+    startAt: slot.startAt,
+    endAt: slot.endAt,
+    capacity: slot.capacity,
+    bookedCount: slot.bookedCount,
+    status: slot.status,
+    version: slot.version,
+  });
 
   return slot;
 }
@@ -402,6 +429,28 @@ export async function updateSlot({
   slot.version += 1;
 
   await slot.save();
+
+  emitSlotUpdated({
+    slotId: String(slot._id),
+    counsellorId: String(slot.counsellorId),
+    startAt: slot.startAt,
+    endAt: slot.endAt,
+    capacity: slot.capacity,
+    bookedCount: slot.bookedCount,
+    status: slot.status,
+    version: slot.version,
+  });
+
+  broadcastAll({
+    slotId: String(slot._id),
+    counsellorId: String(slot.counsellorId),
+    startAt: slot.startAt,
+    endAt: slot.endAt,
+    capacity: slot.capacity,
+    bookedCount: slot.bookedCount,
+    status: slot.status,
+    version: slot.version,
+  });
 
   return slot;
 }

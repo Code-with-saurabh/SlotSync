@@ -5,6 +5,7 @@ export const studentApi = api.injectEndpoints({
 
     // ==================================================
     // MY BOOKINGS
+    // pollingInterval: 8000 — auto-refetch every 8s
     // ==================================================
 
     getMyBookings: builder.query({
@@ -18,6 +19,8 @@ export const studentApi = api.injectEndpoints({
       },
 
       providesTags: ["Bookings"],
+
+      pollingInterval: 8000,
     }),
 
 
@@ -83,11 +86,6 @@ export const studentApi = api.injectEndpoints({
       async onQueryStarted(bookingId, { dispatch, queryFulfilled, getState }) {
         const patchResults = [];
 
-        /*
-         * Find the booking in ANY getMyBookings cache entry
-         * to get its slotId, then optimistically decrement
-         * that specific slot.
-         */
         const allQueries = getState().api?.queries || {};
         let targetSlotId = null;
         let bookings = [];
@@ -137,6 +135,7 @@ export const studentApi = api.injectEndpoints({
 
     // ==================================================
     // MY WAITLIST
+    // pollingInterval: 8000 — auto-refetch every 8s
     // ==================================================
 
     getMyWaitlist: builder.query({
@@ -150,6 +149,8 @@ export const studentApi = api.injectEndpoints({
       },
 
       providesTags: ["Waitlist"],
+
+      pollingInterval: 8000,
     }),
 
 

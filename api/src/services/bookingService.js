@@ -8,6 +8,13 @@ import AuditLog from "../models/AuditLog.js";
 
 import { AppError } from "../utils/AppError.js";
 import { broadcastAll } from "../utils/sse.js";
+import {
+  emitSlotUpdated,
+  emitBookingCreated,
+  emitBookingCancelled,
+  emitBookingPromoted,
+  emitBookingOutcomeSet,
+} from "../utils/socketManager.js";
 
 import {
   assertBookingCanBeCancelled,
@@ -382,7 +389,7 @@ async function createBookingTransaction(
       }
     );
 
-  return booking;
+  return { booking, slot: updatedSlot };
 }
 
 
@@ -408,7 +415,7 @@ export async function createBooking({
     "slot ID"
   );
 
-  const booking = await runTransaction(
+  const result = await runTransaction(
     (session) =>
       createBookingTransaction(
         actor.id,
@@ -418,22 +425,35 @@ export async function createBooking({
   );
 
   /*
-   * Broadcast SSE AFTER transaction commits.
-   * This ensures clients only see confirmed bookings.
+   * Broadcast AFTER transaction commits.
+   *
+   * Race condition fix: use the slot data returned
+   * directly from the transaction instead of
+   * re-reading from DB. The re-read could return
+   * stale data if another request modified the slot
+   * between our transaction commit and the read.
    */
-  if (booking) {
-    const slot = await Slot.findById(booking.slotId).lean();
-    if (slot) {
-      broadcastAll({
-        slotId: String(slot._id),
-        bookedCount: slot.bookedCount,
-        capacity: slot.capacity,
-        seatsLeft: slot.capacity - slot.bookedCount,
-      });
-    }
+  if (result?.booking && result?.slot) {
+    const slotData = {
+      slotId: String(result.slot._id),
+      bookedCount: result.slot.bookedCount,
+      capacity: result.slot.capacity,
+      seatsLeft: result.slot.capacity - result.slot.bookedCount,
+      version: result.slot.version,
+      status: result.slot.status,
+    };
+
+    broadcastAll(slotData);
+    emitSlotUpdated(slotData);
+    emitBookingCreated({
+      bookingId: String(result.booking._id),
+      slotId: String(result.booking.slotId),
+      studentId: String(result.booking.studentId),
+      status: result.booking.status,
+    });
   }
 
-  return booking;
+  return result.booking;
 }
 
 
@@ -981,6 +1001,7 @@ if (hasOverlap) {
         claimedEntry,
 
       booking,
+      finalSlot: updatedSlot,
     };
   }
 
@@ -1243,21 +1264,45 @@ export async function cancelBooking({
           updatedBooking,
 
         promotion,
+        finalSlot: promotion?.finalSlot || updatedSlot,
       };
     }
   );
 
   /*
-   * Broadcast SSE AFTER transaction commits.
+   * Broadcast AFTER transaction commits.
+   *
+   * Race condition fix: use the final slot state from
+   * the transaction result instead of re-reading.
+   * The promotion may have re-occupied the released
+   * seat, so we use the finalSlot which reflects the
+   * post-promotion state.
    */
   if (result?.booking) {
-    const slot = await Slot.findById(result.booking.slotId).lean();
-    if (slot) {
-      broadcastAll({
-        slotId: String(slot._id),
-        bookedCount: slot.bookedCount,
-        capacity: slot.capacity,
-        seatsLeft: slot.capacity - slot.bookedCount,
+    const finalSlot = result.finalSlot;
+    const slotData = {
+      slotId: String(finalSlot._id),
+      bookedCount: finalSlot.bookedCount,
+      capacity: finalSlot.capacity,
+      seatsLeft: finalSlot.capacity - finalSlot.bookedCount,
+      version: finalSlot.version,
+      status: finalSlot.status,
+    };
+
+    broadcastAll(slotData);
+    emitSlotUpdated(slotData);
+    emitBookingCancelled({
+      bookingId: String(result.booking._id),
+      slotId: String(result.booking.slotId),
+      studentId: String(result.booking.studentId),
+    });
+
+    if (result.promotion?.booking) {
+      emitBookingPromoted({
+        bookingId: String(result.promotion.booking._id),
+        slotId: String(result.promotion.booking.slotId),
+        studentId: String(result.promotion.booking.studentId),
+        waitlistEntryId: String(result.promotion.entry._id),
       });
     }
   }
@@ -1344,7 +1389,7 @@ export async function markBookingOutcome({
 
   assertObjectId(bookingId, "booking ID");
 
-  return runTransaction(async (session) => {
+  const updatedBooking = await runTransaction(async (session) => {
     /*
      * 1. FIND BOOKING SCOPED TO THIS COUNSELLOR
      *
@@ -1443,5 +1488,20 @@ export async function markBookingOutcome({
 
     return updatedBooking;
   });
+
+  /*
+   * Broadcast outcome change via Socket.IO
+   * AFTER transaction commits.
+   */
+  if (updatedBooking) {
+    emitBookingOutcomeSet({
+      bookingId: String(updatedBooking._id),
+      slotId: String(updatedBooking.slotId),
+      studentId: String(updatedBooking.studentId),
+      status: updatedBooking.status,
+    });
+  }
+
+  return updatedBooking;
 }
 

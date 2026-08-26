@@ -2,9 +2,16 @@ import rateLimit from "express-rate-limit";
 
 export const globalRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-    limit: 100, // Limit each IP to 100 requests per windowMs
-    standardHeaders: "draft-8", // Return rate limit info in the `RateLimit-*` headers
-    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+    limit: 300, // 300 requests per 15 min (enough for polling + normal use)
+    standardHeaders: "draft-8",
+    legacyHeaders: false,
+    skip: (req) => {
+      // Skip rate limiting for SSE, health, and static routes
+      if (req.url.startsWith("/api/slots/stream")) return true;
+      if (req.url.startsWith("/api/slots/") && req.url.endsWith("/stream")) return true;
+      if (req.url.startsWith("/api/health")) return true;
+      return false;
+    },
 
     handler: (req, res) => {
         return res.status(429).json({

@@ -8,10 +8,9 @@ export const slotApi = api.injectEndpoints({
      * Cursor-based pagination: no skip().
      * Returns { slots, nextCursor, hasMore }.
      *
-     * Used by:
-     * - Student
-     * - Counsellor
-     * - Admin
+     * pollingInterval: 8000 — auto-refetch every 8s
+     * as a guaranteed fallback. Socket.IO / SSE events
+     * will trigger instant refetch via tag invalidation.
      */
     getSlots: builder.query({
       query: (params = {}) => ({
@@ -29,6 +28,8 @@ export const slotApi = api.injectEndpoints({
       },
 
       providesTags: ["Slots"],
+
+      pollingInterval: 8000,
     }),
 
     /*

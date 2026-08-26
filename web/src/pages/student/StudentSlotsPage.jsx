@@ -33,11 +33,11 @@ import {
   clearCredentials,
 } from "../../features/auth/authSlice";
 
-import { useSlotSSE } from "../../hooks/useSlotSSE";
 import { useIdempotencyKey } from "../../hooks/useIdempotencyKey";
 
 import SlotCard from "../../components/slots/SlotCard";
 import DarkModeToggle from "../../components/DarkModeToggle";
+import RealtimeStatus from "../../components/RealtimeStatus";
 
 
 const PAGE_LIMIT = 20;
@@ -277,6 +277,7 @@ function StudentSlotsPage() {
             <p className="text-sm text-slate-500 dark:text-slate-400">Counselling appointment platform</p>
           </div>
           <div className="flex items-center gap-3">
+            <RealtimeStatus />
             <DarkModeToggle />
             <div className="hidden items-center gap-2 rounded-lg bg-slate-100 px-3 py-2 sm:flex dark:bg-slate-700">
               <UserRound size={17} className="text-slate-500 dark:text-slate-300" />
@@ -397,23 +398,22 @@ function StudentSlotsPage() {
                 const alreadyWaitlisted = Boolean(currentWaitlistEntry);
 
                 return (
-                  <SlotCardWrapper key={slotId} slot={slot}>
-                    <SlotCard
-                      slot={slot}
-                      alreadyBooked={alreadyBooked}
-                      booking={currentBooking}
-                      alreadyWaitlisted={alreadyWaitlisted}
-                      waitlistEntry={currentWaitlistEntry}
-                      onBook={handleBook}
-                      onCancelBooking={handleCancel}
-                      onJoinWaitlist={handleWaitlist}
-                      onLeaveWaitlist={handleLeaveWaitlist}
-                      isBooking={bookingSlotId === slotId}
-                      isCancellingBooking={cancellingBookingId === getBookingId(currentBooking)}
-                      isJoiningWaitlist={waitlistSlotId === slotId}
-                      isLeavingWaitlist={leavingWaitlistId === getWaitlistEntryId(currentWaitlistEntry)}
-                    />
-                  </SlotCardWrapper>
+                  <SlotCard
+                    key={slotId}
+                    slot={slot}
+                    alreadyBooked={alreadyBooked}
+                    booking={currentBooking}
+                    alreadyWaitlisted={alreadyWaitlisted}
+                    waitlistEntry={currentWaitlistEntry}
+                    onBook={handleBook}
+                    onCancelBooking={handleCancel}
+                    onJoinWaitlist={handleWaitlist}
+                    onLeaveWaitlist={handleLeaveWaitlist}
+                    isBooking={bookingSlotId === slotId}
+                    isCancellingBooking={cancellingBookingId === getBookingId(currentBooking)}
+                    isJoiningWaitlist={waitlistSlotId === slotId}
+                    isLeavingWaitlist={leavingWaitlistId === getWaitlistEntryId(currentWaitlistEntry)}
+                  />
                 );
               })}
             </div>
@@ -527,11 +527,6 @@ function StudentSlotsPage() {
       </main>
     </div>
   );
-}
-
-function SlotCardWrapper({ slot, children }) {
-  useSlotSSE(slot?._id || slot?.id);
-  return children;
 }
 
 export default StudentSlotsPage;
