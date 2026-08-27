@@ -48,7 +48,8 @@ export const env = Object.freeze({
     process.env.JWT_REFRESH_EXPIRES_IN || "7d",
 
   cookieSecure:
-    process.env.COOKIE_SECURE === "true",
+    process.env.COOKIE_SECURE === "true" ||
+    process.env.NODE_ENV === "production",
 
   cookieSameSite:
     process.env.COOKIE_SAME_SITE || "lax",
