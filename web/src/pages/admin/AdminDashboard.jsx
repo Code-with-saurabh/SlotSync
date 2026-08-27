@@ -440,25 +440,25 @@ function AdminDashboard() {
    */
 
   return (
-    <div className="min-h-screen bg-slate-100 dark:bg-slate-900 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-slate-100 dark:bg-slate-900 p-3 sm:p-4 lg:p-8">
       <div className="mx-auto max-w-7xl">
 
         {/* HEADER */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">Admin Dashboard</h1>
-            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">Manage SlotSync slots, counsellors, analytics and activity.</p>
+            <h1 className="text-xl font-bold text-slate-900 dark:text-white sm:text-2xl lg:text-3xl">Admin Dashboard</h1>
+            <p className="mt-1 text-xs text-slate-600 dark:text-slate-300 sm:mt-2 sm:text-sm">Manage SlotSync slots, counsellors, analytics and activity.</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <RealtimeStatus />
             <DarkModeToggle />
             <button
               type="button"
               onClick={handleLogout}
               disabled={logoutState.isLoading}
-              className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600 sm:gap-2 sm:px-3 sm:py-2 sm:text-sm"
             >
-              <LogOut size={16} />
+              <LogOut size={14} />
               {logoutState.isLoading ? "Signing out..." : "Logout"}
             </button>
           </div>
@@ -474,12 +474,12 @@ function AdminDashboard() {
         )}
 
         {/* TABS */}
-        <div className="mt-6 flex gap-1 overflow-x-auto rounded-xl bg-white p-1 shadow-sm dark:bg-slate-800">
+        <div className="mt-4 flex gap-1 overflow-x-auto rounded-xl bg-white p-1 shadow-sm sm:mt-6 dark:bg-slate-800">
           {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 whitespace-nowrap rounded-lg px-4 py-2.5 text-sm font-semibold transition ${
+              className={`whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold transition sm:flex-1 sm:px-4 sm:py-2.5 sm:text-sm ${
                 activeTab === tab.id
                   ? "bg-slate-900 text-white"
                   : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700"
@@ -494,30 +494,30 @@ function AdminDashboard() {
             TAB: SLOTS
         ================================================== */}
         {activeTab === "slots" && (
-          <div className="mt-6">
+          <div className="mt-4 sm:mt-6">
             {/* Stats */}
-            <div className="mb-6 grid gap-4 sm:grid-cols-3">
-              <div className="rounded-xl bg-white p-5 shadow-sm dark:bg-slate-800">
-                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Total Slots</p>
-                <p className="mt-1 text-3xl font-bold text-slate-900 dark:text-white">{slotsLoading ? "..." : totalSlots}</p>
+            <div className="mb-4 grid grid-cols-3 gap-2 sm:mb-6 sm:gap-4">
+              <div className="rounded-xl bg-white p-3 shadow-sm sm:p-5 dark:bg-slate-800">
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 sm:text-sm">Total Slots</p>
+                <p className="mt-1 text-xl font-bold text-slate-900 sm:text-3xl dark:text-white">{slotsLoading ? "..." : totalSlots}</p>
               </div>
-              <div className="rounded-xl bg-white p-5 shadow-sm dark:bg-slate-800">
-                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Open</p>
-                <p className="mt-1 text-3xl font-bold text-emerald-600">{slotsLoading ? "..." : openSlots}</p>
+              <div className="rounded-xl bg-white p-3 shadow-sm sm:p-5 dark:bg-slate-800">
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 sm:text-sm">Open</p>
+                <p className="mt-1 text-xl font-bold text-emerald-600 sm:text-3xl">{slotsLoading ? "..." : openSlots}</p>
               </div>
-              <div className="rounded-xl bg-white p-5 shadow-sm dark:bg-slate-800">
-                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Closed</p>
-                <p className="mt-1 text-3xl font-bold text-amber-600">{slotsLoading ? "..." : closedSlots}</p>
+              <div className="rounded-xl bg-white p-3 shadow-sm sm:p-5 dark:bg-slate-800">
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 sm:text-sm">Closed</p>
+                <p className="mt-1 text-xl font-bold text-amber-600 sm:text-3xl">{slotsLoading ? "..." : closedSlots}</p>
               </div>
             </div>
 
             {/* Slot Table */}
             <div className="overflow-hidden rounded-xl bg-white shadow-sm dark:bg-slate-800">
-              <div className="flex items-center justify-between border-b border-slate-200 p-5 dark:border-slate-700">
-                <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Slot Management</h2>
+              <div className="flex items-center justify-between border-b border-slate-200 p-3 sm:p-5 dark:border-slate-700">
+                <h2 className="text-sm font-semibold text-slate-900 sm:text-lg dark:text-white">Slot Management</h2>
                 <div className="flex gap-2">
-                  {slotsFetching && <span className="text-sm text-blue-600">Refreshing...</span>}
-                  <button onClick={() => setIsCreateOpen(true)} className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">
+                  {slotsFetching && <span className="text-xs text-blue-600 sm:text-sm">Refreshing...</span>}
+                  <button onClick={() => setIsCreateOpen(true)} className="rounded-lg bg-slate-900 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 sm:px-4 sm:text-sm">
                     + Create Slot
                   </button>
                 </div>
@@ -530,57 +530,96 @@ function AdminDashboard() {
               ) : slots.length === 0 ? (
                 <div className="p-8 text-center text-sm text-slate-500 dark:text-slate-400">No slots found. Create one above.</div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full text-left text-sm">
-                    <thead className="bg-slate-50 dark:bg-slate-700">
-                      <tr>
-                        <th className="px-5 py-3 font-semibold text-slate-600 dark:text-slate-300">Slot</th>
-                        <th className="px-5 py-3 font-semibold text-slate-600 dark:text-slate-300">Counsellor</th>
-                        <th className="px-5 py-3 font-semibold text-slate-600 dark:text-slate-300">Capacity</th>
-                        <th className="px-5 py-3 font-semibold text-slate-600 dark:text-slate-300">Booked</th>
-                        <th className="px-5 py-3 font-semibold text-slate-600 dark:text-slate-300">Seats</th>
-                        <th className="px-5 py-3 font-semibold text-slate-600 dark:text-slate-300">Status</th>
-                        <th className="px-5 py-3 font-semibold text-slate-600 dark:text-slate-300">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                      {slots.map((slot) => {
-                        const capacity = Number(slot?.capacity) || 0;
-                        const bookedCount = Number(slot?.bookedCount) || 0;
-                        const seatsLeft = Math.max(0, capacity - bookedCount);
-                        const status = slot?.status || "open";
-                        const slotId = slot?._id || slot?.id;
+                <>
+                  {/* Desktop Table */}
+                  <div className="hidden overflow-x-auto md:block">
+                    <table className="min-w-full text-left text-sm">
+                      <thead className="bg-slate-50 dark:bg-slate-700">
+                        <tr>
+                          <th className="px-5 py-3 font-semibold text-slate-600 dark:text-slate-300">Slot</th>
+                          <th className="px-5 py-3 font-semibold text-slate-600 dark:text-slate-300">Counsellor</th>
+                          <th className="px-5 py-3 font-semibold text-slate-600 dark:text-slate-300">Capacity</th>
+                          <th className="px-5 py-3 font-semibold text-slate-600 dark:text-slate-300">Booked</th>
+                          <th className="px-5 py-3 font-semibold text-slate-600 dark:text-slate-300">Seats</th>
+                          <th className="px-5 py-3 font-semibold text-slate-600 dark:text-slate-300">Status</th>
+                          <th className="px-5 py-3 font-semibold text-slate-600 dark:text-slate-300">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                        {slots.map((slot) => {
+                          const capacity = Number(slot?.capacity) || 0;
+                          const bookedCount = Number(slot?.bookedCount) || 0;
+                          const seatsLeft = Math.max(0, capacity - bookedCount);
+                          const status = slot?.status || "open";
+                          const slotId = slot?._id || slot?.id;
 
-                        return (
-                          <tr key={slotId} className="hover:bg-slate-50 dark:hover:bg-slate-700">
-                            <td className="px-5 py-3">
-                              <div className="font-medium text-slate-900 dark:text-white">{formatDateTime(slot?.startAt)}</div>
-                              <div className="text-xs text-slate-500 dark:text-slate-400">Until {formatDateTime(slot?.endAt)}</div>
-                            </td>
-                            <td className="px-5 py-3 text-slate-600 dark:text-slate-300">{getCounsellorName(slot)}</td>
-                            <td className="px-5 py-3 text-slate-600 dark:text-slate-300">{capacity}</td>
-                            <td className="px-5 py-3 text-slate-600 dark:text-slate-300">{bookedCount}</td>
-                            <td className="px-5 py-3">
+                          return (
+                            <tr key={slotId} className="hover:bg-slate-50 dark:hover:bg-slate-700">
+                              <td className="px-5 py-3">
+                                <div className="font-medium text-slate-900 dark:text-white">{formatDateTime(slot?.startAt)}</div>
+                                <div className="text-xs text-slate-500 dark:text-slate-400">Until {formatDateTime(slot?.endAt)}</div>
+                              </td>
+                              <td className="px-5 py-3 text-slate-600 dark:text-slate-300">{getCounsellorName(slot)}</td>
+                              <td className="px-5 py-3 text-slate-600 dark:text-slate-300">{capacity}</td>
+                              <td className="px-5 py-3 text-slate-600 dark:text-slate-300">{bookedCount}</td>
+                              <td className="px-5 py-3">
+                                <span className={seatsLeft === 0 ? "font-semibold text-red-600" : "font-semibold text-emerald-600"}>
+                                  {seatsLeft}
+                                </span>
+                              </td>
+                              <td className="px-5 py-3">
+                                <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${getStatusClasses(status)}`}>
+                                  {status}
+                                </span>
+                              </td>
+                              <td className="px-5 py-3">
+                                <button onClick={() => setEditingSlot(slot)} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700">
+                                  Edit
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Mobile Cards */}
+                  <div className="divide-y divide-slate-100 md:hidden dark:divide-slate-700">
+                    {slots.map((slot) => {
+                      const capacity = Number(slot?.capacity) || 0;
+                      const bookedCount = Number(slot?.bookedCount) || 0;
+                      const seatsLeft = Math.max(0, capacity - bookedCount);
+                      const status = slot?.status || "open";
+
+                      return (
+                        <div key={slot?._id || slot?.id} className="p-3">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <p className="text-sm font-medium text-slate-900 dark:text-white">{formatDateTime(slot?.startAt)}</p>
+                              <p className="text-xs text-slate-500 dark:text-slate-400">Until {formatDateTime(slot?.endAt)}</p>
+                              <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">{getCounsellorName(slot)}</p>
+                            </div>
+                            <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${getStatusClasses(status)}`}>
+                              {status}
+                            </span>
+                          </div>
+                          <div className="mt-2 flex items-center justify-between">
+                            <div className="flex gap-3 text-xs text-slate-600 dark:text-slate-400">
+                              <span>{bookedCount}/{capacity} booked</span>
                               <span className={seatsLeft === 0 ? "font-semibold text-red-600" : "font-semibold text-emerald-600"}>
-                                {seatsLeft}
+                                {seatsLeft} seats
                               </span>
-                            </td>
-                            <td className="px-5 py-3">
-                              <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${getStatusClasses(status)}`}>
-                                {status}
-                              </span>
-                            </td>
-                            <td className="px-5 py-3">
-                              <button onClick={() => setEditingSlot(slot)} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700">
-                                Edit
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                            </div>
+                            <button onClick={() => setEditingSlot(slot)} className="rounded-lg border border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700">
+                              Edit
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
               )}
             </div>
           </div>
@@ -590,24 +629,24 @@ function AdminDashboard() {
             TAB: COUNSELLORS
         ================================================== */}
         {activeTab === "counsellors" && (
-          <div className="mt-6">
+          <div className="mt-4 sm:mt-6">
             {/* Stats */}
-            <div className="mb-6 grid gap-4 sm:grid-cols-2">
-              <div className="rounded-xl bg-white p-5 shadow-sm dark:bg-slate-800">
-                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Total Counsellors</p>
-                <p className="mt-1 text-3xl font-bold text-slate-900 dark:text-white">{counsellorsLoading ? "..." : totalCounsellors}</p>
+            <div className="mb-4 grid grid-cols-2 gap-2 sm:mb-6 sm:gap-4">
+              <div className="rounded-xl bg-white p-3 shadow-sm sm:p-5 dark:bg-slate-800">
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 sm:text-sm">Total Counsellors</p>
+                <p className="mt-1 text-xl font-bold text-slate-900 sm:text-3xl dark:text-white">{counsellorsLoading ? "..." : totalCounsellors}</p>
               </div>
-              <div className="rounded-xl bg-white p-5 shadow-sm dark:bg-slate-800">
-                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Active Counsellors</p>
-                <p className="mt-1 text-3xl font-bold text-emerald-600">{counsellorsLoading ? "..." : activeCounsellors}</p>
+              <div className="rounded-xl bg-white p-3 shadow-sm sm:p-5 dark:bg-slate-800">
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 sm:text-sm">Active Counsellors</p>
+                <p className="mt-1 text-xl font-bold text-emerald-600 sm:text-3xl">{counsellorsLoading ? "..." : activeCounsellors}</p>
               </div>
             </div>
 
             {/* Counsellor Table */}
             <div className="overflow-hidden rounded-xl bg-white shadow-sm dark:bg-slate-800">
-              <div className="flex items-center justify-between border-b border-slate-200 p-5 dark:border-slate-700">
-                <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Counsellor Management</h2>
-                <button onClick={openCreateCounsellor} className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">
+              <div className="flex items-center justify-between border-b border-slate-200 p-3 sm:p-5 dark:border-slate-700">
+                <h2 className="text-sm font-semibold text-slate-900 sm:text-lg dark:text-white">Counsellor Management</h2>
+                <button onClick={openCreateCounsellor} className="rounded-lg bg-slate-900 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 sm:px-4 sm:text-sm">
                   + Add Counsellor
                 </button>
               </div>
@@ -619,50 +658,87 @@ function AdminDashboard() {
               ) : counsellors.length === 0 ? (
                 <div className="p-8 text-center text-sm text-slate-500 dark:text-slate-400">No counsellors found. Add one above.</div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full text-left text-sm">
-                    <thead className="bg-slate-50 dark:bg-slate-700">
-                      <tr>
-                        <th className="px-5 py-3 font-semibold text-slate-600 dark:text-slate-300">Name</th>
-                        <th className="px-5 py-3 font-semibold text-slate-600 dark:text-slate-300">Email</th>
-                        <th className="px-5 py-3 font-semibold text-slate-600 dark:text-slate-300">Status</th>
-                        <th className="px-5 py-3 font-semibold text-slate-600 dark:text-slate-300">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                      {counsellors.map((counsellor) => {
-                        const cid = counsellor?._id || counsellor?.id;
-                        const isActive = counsellor?.isActive !== false;
+                <>
+                  {/* Desktop Table */}
+                  <div className="hidden overflow-x-auto md:block">
+                    <table className="min-w-full text-left text-sm">
+                      <thead className="bg-slate-50 dark:bg-slate-700">
+                        <tr>
+                          <th className="px-5 py-3 font-semibold text-slate-600 dark:text-slate-300">Name</th>
+                          <th className="px-5 py-3 font-semibold text-slate-600 dark:text-slate-300">Email</th>
+                          <th className="px-5 py-3 font-semibold text-slate-600 dark:text-slate-300">Status</th>
+                          <th className="px-5 py-3 font-semibold text-slate-600 dark:text-slate-300">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                        {counsellors.map((counsellor) => {
+                          const cid = counsellor?._id || counsellor?.id;
+                          const isActive = counsellor?.isActive !== false;
 
-                        return (
-                          <tr key={cid} className="hover:bg-slate-50 dark:hover:bg-slate-700">
-                            <td className="px-5 py-3 font-medium text-slate-900 dark:text-white">{counsellor?.name || "--"}</td>
-                            <td className="px-5 py-3 text-slate-600 dark:text-slate-300">{counsellor?.email || "--"}</td>
-                            <td className="px-5 py-3">
-                              <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                                isActive ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
-                              }`}>
-                                {isActive ? "Active" : "Inactive"}
-                              </span>
-                            </td>
-                            <td className="px-5 py-3">
-                              <div className="flex gap-2">
-                                <button onClick={() => openEditCounsellor(counsellor)} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700">
-                                  Edit
-                                </button>
-                                <button onClick={() => handleToggleCounsellorStatus(counsellor)} className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
-                                  isActive ? "border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300 dark:hover:bg-red-900/30" : "border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300 dark:hover:bg-emerald-900/30"
+                          return (
+                            <tr key={cid} className="hover:bg-slate-50 dark:hover:bg-slate-700">
+                              <td className="px-5 py-3 font-medium text-slate-900 dark:text-white">{counsellor?.name || "--"}</td>
+                              <td className="px-5 py-3 text-slate-600 dark:text-slate-300">{counsellor?.email || "--"}</td>
+                              <td className="px-5 py-3">
+                                <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                                  isActive ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
                                 }`}>
-                                  {isActive ? "Deactivate" : "Activate"}
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                                  {isActive ? "Active" : "Inactive"}
+                                </span>
+                              </td>
+                              <td className="px-5 py-3">
+                                <div className="flex gap-2">
+                                  <button onClick={() => openEditCounsellor(counsellor)} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700">
+                                    Edit
+                                  </button>
+                                  <button onClick={() => handleToggleCounsellorStatus(counsellor)} className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
+                                    isActive ? "border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300 dark:hover:bg-red-900/30" : "border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300 dark:hover:bg-emerald-900/30"
+                                  }`}>
+                                    {isActive ? "Deactivate" : "Activate"}
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Mobile Cards */}
+                  <div className="divide-y divide-slate-100 md:hidden dark:divide-slate-700">
+                    {counsellors.map((counsellor) => {
+                      const cid = counsellor?._id || counsellor?.id;
+                      const isActive = counsellor?.isActive !== false;
+
+                      return (
+                        <div key={cid} className="p-3">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <p className="text-sm font-medium text-slate-900 dark:text-white">{counsellor?.name || "--"}</p>
+                              <p className="text-xs text-slate-500 dark:text-slate-400">{counsellor?.email || "--"}</p>
+                            </div>
+                            <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                              isActive ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+                            }`}>
+                              {isActive ? "Active" : "Inactive"}
+                            </span>
+                          </div>
+                          <div className="mt-2 flex gap-2">
+                            <button onClick={() => openEditCounsellor(counsellor)} className="rounded-lg border border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700">
+                              Edit
+                            </button>
+                            <button onClick={() => handleToggleCounsellorStatus(counsellor)} className={`rounded-lg px-2.5 py-1 text-xs font-medium ${
+                              isActive ? "border border-red-200 bg-red-50 text-red-700 hover:bg-red-100" : "border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                            }`}>
+                              {isActive ? "Deactivate" : "Activate"}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
               )}
             </div>
           </div>
@@ -672,13 +748,13 @@ function AdminDashboard() {
             TAB: ANALYTICS
         ================================================== */}
         {activeTab === "analytics" && (
-          <div className="mt-6">
+          <div className="mt-4 sm:mt-6">
             {/* Mode Toggle */}
-            <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center">
               <div className="flex gap-2">
                 <button
                   onClick={() => setAnalyticsMode("institute")}
-                  className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
+                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition sm:px-4 sm:py-2 sm:text-sm ${
                     analyticsMode === "institute" ? "bg-slate-900 text-white" : "bg-white text-slate-600 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
                   }`}
                 >
@@ -686,7 +762,7 @@ function AdminDashboard() {
                 </button>
                 <button
                   onClick={() => setAnalyticsMode("counsellor")}
-                  className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
+                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition sm:px-4 sm:py-2 sm:text-sm ${
                     analyticsMode === "counsellor" ? "bg-slate-900 text-white" : "bg-white text-slate-600 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
                   }`}
                 >
@@ -695,13 +771,18 @@ function AdminDashboard() {
               </div>
 
               {analyticsMode === "counsellor" && (
-                <input
-                  type="text"
-                  placeholder="Enter Counsellor ID"
+                <select
                   value={analyticsCounsellorId}
                   onChange={(e) => setAnalyticsCounsellorId(e.target.value)}
-                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500 dark:border-slate-600 dark:bg-slate-800 dark:text-white dark:focus:border-slate-400"
-                />
+                  className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-slate-500 dark:border-slate-600 dark:bg-slate-800 dark:text-white dark:focus:border-slate-400"
+                >
+                  <option value="">Select a counsellor</option>
+                  {counsellors.map((c) => (
+                    <option key={c._id || c.id} value={c._id || c.id}>
+                      {c.name || c.email} ({c.email})
+                    </option>
+                  ))}
+                </select>
               )}
             </div>
 
@@ -715,7 +796,7 @@ function AdminDashboard() {
               </div>
             )}
             {analyticsMode === "counsellor" && !analyticsCounsellorId && (
-              <div className="rounded-xl bg-white p-8 text-center text-sm text-slate-500 shadow-sm dark:bg-slate-800 dark:text-slate-400">Enter a counsellor ID to view their analytics.</div>
+              <div className="rounded-xl bg-white p-8 text-center text-sm text-slate-500 shadow-sm dark:bg-slate-800 dark:text-slate-400">Select a counsellor to view their analytics.</div>
             )}
             {analyticsMode === "counsellor" && analyticsCounsellorId && counsellorAnalyticsLoading && (
               <div className="rounded-xl bg-white p-8 text-center text-sm text-slate-500 shadow-sm dark:bg-slate-800 dark:text-slate-400">Loading counsellor analytics...</div>
@@ -730,36 +811,36 @@ function AdminDashboard() {
             {analyticsData && (
               <div className="rounded-xl bg-white p-6 shadow-sm dark:bg-slate-800">
                 {/* Stats Grid */}
-                <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="mb-4 grid grid-cols-2 gap-2 sm:mb-6 sm:grid-cols-2 lg:grid-cols-4 sm:gap-4">
                   {analyticsMode === "institute" && (
-                    <div className="rounded-lg bg-slate-50 p-4 dark:bg-slate-700">
-                      <p className="text-sm text-slate-500 dark:text-slate-400">Total Counsellors</p>
-                      <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">{analyticsData.totalCounsellors ?? 0}</p>
+                    <div className="rounded-lg bg-slate-50 p-2.5 sm:p-4 dark:bg-slate-700">
+                      <p className="text-xs text-slate-500 sm:text-sm dark:text-slate-400">Total Counsellors</p>
+                      <p className="mt-1 text-lg font-bold text-slate-900 sm:text-2xl dark:text-white">{analyticsData.totalCounsellors ?? 0}</p>
                     </div>
                   )}
-                  <div className="rounded-lg bg-slate-50 p-4 dark:bg-slate-700">
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Total Slots</p>
-                    <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">{analyticsData.totalSlots ?? 0}</p>
+                  <div className="rounded-lg bg-slate-50 p-2.5 sm:p-4 dark:bg-slate-700">
+                    <p className="text-xs text-slate-500 sm:text-sm dark:text-slate-400">Total Slots</p>
+                    <p className="mt-1 text-lg font-bold text-slate-900 sm:text-2xl dark:text-white">{analyticsData.totalSlots ?? 0}</p>
                   </div>
-                  <div className="rounded-lg bg-slate-50 p-4 dark:bg-slate-700">
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Confirmed Bookings</p>
-                    <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">{analyticsData.totalConfirmedBookings ?? 0}</p>
+                  <div className="rounded-lg bg-slate-50 p-2.5 sm:p-4 dark:bg-slate-700">
+                    <p className="text-xs text-slate-500 sm:text-sm dark:text-slate-400">Confirmed Bookings</p>
+                    <p className="mt-1 text-lg font-bold text-slate-900 sm:text-2xl dark:text-white">{analyticsData.totalConfirmedBookings ?? 0}</p>
                   </div>
-                  <div className="rounded-lg bg-slate-50 p-4 dark:bg-slate-700">
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Utilisation</p>
-                    <p className="mt-1 text-2xl font-bold text-emerald-600">{analyticsData.utilisationPercent ?? 0}%</p>
+                  <div className="rounded-lg bg-slate-50 p-2.5 sm:p-4 dark:bg-slate-700">
+                    <p className="text-xs text-slate-500 sm:text-sm dark:text-slate-400">Utilisation</p>
+                    <p className="mt-1 text-lg font-bold text-emerald-600 sm:text-2xl">{analyticsData.utilisationPercent ?? 0}%</p>
                   </div>
-                  <div className="rounded-lg bg-slate-50 p-4 dark:bg-slate-700">
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Avg Lead Time</p>
-                    <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">{analyticsData.averageLeadTimeMinutes ?? 0} min</p>
+                  <div className="rounded-lg bg-slate-50 p-2.5 sm:p-4 dark:bg-slate-700">
+                    <p className="text-xs text-slate-500 sm:text-sm dark:text-slate-400">Avg Lead Time</p>
+                    <p className="mt-1 text-lg font-bold text-slate-900 sm:text-2xl dark:text-white">{analyticsData.averageLeadTimeMinutes ?? 0} min</p>
                   </div>
-                  <div className="rounded-lg bg-slate-50 p-4 dark:bg-slate-700">
-                    <p className="text-sm text-slate-500 dark:text-slate-400">No-Show Rate</p>
-                    <p className="mt-1 text-2xl font-bold text-amber-600">{analyticsData.noShowPercent ?? 0}%</p>
+                  <div className="rounded-lg bg-slate-50 p-2.5 sm:p-4 dark:bg-slate-700">
+                    <p className="text-xs text-slate-500 sm:text-sm dark:text-slate-400">No-Show Rate</p>
+                    <p className="mt-1 text-lg font-bold text-amber-600 sm:text-2xl">{analyticsData.noShowPercent ?? 0}%</p>
                   </div>
-                  <div className="rounded-lg bg-slate-50 p-4 dark:bg-slate-700">
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Cancellation Rate</p>
-                    <p className="mt-1 text-2xl font-bold text-red-600">{analyticsData.cancellationPercent ?? 0}%</p>
+                  <div className="rounded-lg bg-slate-50 p-2.5 sm:p-4 dark:bg-slate-700">
+                    <p className="text-xs text-slate-500 sm:text-sm dark:text-slate-400">Cancellation Rate</p>
+                    <p className="mt-1 text-lg font-bold text-red-600 sm:text-2xl">{analyticsData.cancellationPercent ?? 0}%</p>
                   </div>
                 </div>
 
@@ -807,10 +888,10 @@ function AdminDashboard() {
             TAB: AUDIT LOG
         ================================================== */}
         {activeTab === "audit" && (
-          <div className="mt-6">
+          <div className="mt-4 sm:mt-6">
             <div className="overflow-hidden rounded-xl bg-white shadow-sm dark:bg-slate-800">
-              <div className="border-b border-slate-200 p-5 dark:border-slate-700">
-                <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Platform Activity</h2>
+              <div className="border-b border-slate-200 p-3 sm:p-5 dark:border-slate-700">
+                <h2 className="text-sm font-semibold text-slate-900 sm:text-lg dark:text-white">Platform Activity</h2>
               </div>
 
               {auditLoading ? (
@@ -821,13 +902,15 @@ function AdminDashboard() {
                 <div className="p-8 text-center text-sm text-slate-500 dark:text-slate-400">No audit activity found.</div>
               ) : (
                 <>
-                  <div className="overflow-x-auto">
+                  {/* Desktop Table */}
+                  <div className="hidden overflow-x-auto md:block">
                     <table className="min-w-full text-left text-sm">
                       <thead className="bg-slate-50 dark:bg-slate-700">
                         <tr>
                           <th className="px-5 py-3 font-semibold text-slate-600 dark:text-slate-300">Action</th>
                           <th className="px-5 py-3 font-semibold text-slate-600 dark:text-slate-300">Entity</th>
-                          <th className="px-5 py-3 font-semibold text-slate-600 dark:text-slate-300">Entity ID</th>
+                          <th className="px-5 py-3 font-semibold text-slate-600 dark:text-slate-300">Entity Name</th>
+                          <th className="px-5 py-3 font-semibold text-slate-600 dark:text-slate-300">Actor</th>
                           <th className="px-5 py-3 font-semibold text-slate-600 dark:text-slate-300">Date</th>
                         </tr>
                       </thead>
@@ -840,7 +923,12 @@ function AdminDashboard() {
                               </span>
                             </td>
                             <td className="px-5 py-3 font-medium text-slate-900 dark:text-white">{log?.entity || "--"}</td>
-                            <td className="max-w-xs truncate px-5 py-3 font-mono text-xs text-slate-500 dark:text-slate-400">{log?.entityId || "--"}</td>
+                            <td className="px-5 py-3 text-sm text-slate-700 dark:text-slate-300">
+                              {log?.entityName || (
+                                <span className="font-mono text-xs text-slate-400">{String(log?.entityId || "--").slice(0, 12)}...</span>
+                              )}
+                            </td>
+                            <td className="px-5 py-3 text-sm text-slate-600 dark:text-slate-400">{log?.actorName || "--"}</td>
                             <td className="px-5 py-3 text-slate-500 dark:text-slate-400">{formatDateTime(log?.createdAt)}</td>
                           </tr>
                         ))}
@@ -848,9 +936,31 @@ function AdminDashboard() {
                     </table>
                   </div>
 
+                  {/* Mobile Cards */}
+                  <div className="divide-y divide-slate-100 md:hidden dark:divide-slate-700">
+                    {logs.map((log) => (
+                      <div key={log?._id || log?.id} className="p-3">
+                        <div className="flex items-start justify-between">
+                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700 dark:bg-slate-700 dark:text-slate-200">
+                            {log?.action || "--"}
+                          </span>
+                          <span className="text-xs text-slate-500 dark:text-slate-400">{formatDateTime(log?.createdAt)}</span>
+                        </div>
+                        <div className="mt-2">
+                          <p className="text-sm font-medium text-slate-900 dark:text-white">
+                            {log?.entityName || log?.entity || "--"}
+                          </p>
+                          <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                            {log?.entity} by {log?.actorName || "--"}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
                   {/* Pagination */}
-                  <div className="flex items-center justify-between border-t border-slate-200 px-5 py-3 dark:border-slate-700">
-                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                  <div className="flex items-center justify-between border-t border-slate-200 px-3 py-2 dark:border-slate-700 sm:px-5 sm:py-3">
+                    <p className="text-xs text-slate-500 sm:text-sm dark:text-slate-400">
                       Page <span className="font-medium text-slate-700 dark:text-slate-200">{pagination?.page ?? auditPage}</span> of{" "}
                       <span className="font-medium text-slate-700 dark:text-slate-200">{pagination?.totalPages ?? 1}</span>
                     </p>
@@ -858,14 +968,14 @@ function AdminDashboard() {
                       <button
                         disabled={!pagination?.hasPreviousPage}
                         onClick={() => setAuditPage((p) => Math.max(1, p - 1))}
-                        className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"
+                        className="rounded-lg border border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700 sm:px-3 sm:text-sm"
                       >
                         Previous
                       </button>
                       <button
                         disabled={!pagination?.hasNextPage}
                         onClick={() => setAuditPage((p) => p + 1)}
-                        className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"
+                        className="rounded-lg border border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700 sm:px-3 sm:text-sm"
                       >
                         Next
                       </button>
@@ -884,15 +994,15 @@ function AdminDashboard() {
           CREATE SLOT MODAL
       ================================================== */}
       {isCreateOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3 sm:p-4">
           <div className="w-full max-w-lg rounded-2xl bg-white shadow-xl dark:bg-slate-800">
-            <div className="border-b border-slate-200 p-5 dark:border-slate-700">
+            <div className="border-b border-slate-200 p-3 sm:p-5 dark:border-slate-700">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Create Slot</h2>
-                <button onClick={() => setIsCreateOpen(false)} className="text-2xl text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-200">x</button>
+                <h2 className="text-base font-semibold text-slate-900 sm:text-lg dark:text-white">Create Slot</h2>
+                <button onClick={() => setIsCreateOpen(false)} className="text-xl text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-200">x</button>
               </div>
             </div>
-            <form onSubmit={handleCreateSlot} className="space-y-4 p-5">
+            <form onSubmit={handleCreateSlot} className="space-y-3 p-3 sm:space-y-4 sm:p-5">
               <div>
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-200">Counsellor</label>
                 <select name="counsellorId" required className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-slate-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:focus:border-slate-400">
@@ -931,15 +1041,15 @@ function AdminDashboard() {
           EDIT SLOT MODAL
       ================================================== */}
       {editingSlot && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3 sm:p-4">
           <div className="w-full max-w-lg rounded-2xl bg-white shadow-xl dark:bg-slate-800">
-            <div className="border-b border-slate-200 p-5 dark:border-slate-700">
+            <div className="border-b border-slate-200 p-3 sm:p-5 dark:border-slate-700">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Edit Slot</h2>
-                <button onClick={() => setEditingSlot(null)} className="text-2xl text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-200">x</button>
+                <h2 className="text-base font-semibold text-slate-900 sm:text-lg dark:text-white">Edit Slot</h2>
+                <button onClick={() => setEditingSlot(null)} className="text-xl text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-200">x</button>
               </div>
             </div>
-            <form onSubmit={handleUpdateSlot} className="space-y-4 p-5">
+            <form onSubmit={handleUpdateSlot} className="space-y-3 p-3 sm:space-y-4 sm:p-5">
               <div>
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-200">Start Time</label>
                 <input type="datetime-local" name="startAt" required defaultValue={toDateTimeLocal(editingSlot.startAt)} className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:focus:border-slate-400" />
@@ -975,17 +1085,17 @@ function AdminDashboard() {
           COUNSELLOR MODAL (CREATE / EDIT)
       ================================================== */}
       {isCounsellorModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3 sm:p-4">
           <div className="w-full max-w-lg rounded-2xl bg-white shadow-xl dark:bg-slate-800">
-            <div className="border-b border-slate-200 p-5 dark:border-slate-700">
+            <div className="border-b border-slate-200 p-3 sm:p-5 dark:border-slate-700">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+                <h2 className="text-base font-semibold text-slate-900 sm:text-lg dark:text-white">
                   {editingCounsellor ? "Edit Counsellor" : "Add Counsellor"}
                 </h2>
-                <button onClick={() => { setIsCounsellorModalOpen(false); setEditingCounsellor(null); }} className="text-2xl text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-200">x</button>
+                <button onClick={() => { setIsCounsellorModalOpen(false); setEditingCounsellor(null); }} className="text-xl text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-200">x</button>
               </div>
             </div>
-            <form onSubmit={editingCounsellor ? handleUpdateCounsellor : handleCreateCounsellor} className="space-y-4 p-5">
+            <form onSubmit={editingCounsellor ? handleUpdateCounsellor : handleCreateCounsellor} className="space-y-3 p-3 sm:space-y-4 sm:p-5">
               <div>
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-200">Full Name</label>
                 <input

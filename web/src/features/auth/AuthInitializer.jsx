@@ -52,55 +52,70 @@ function AuthInitializer({
 
     const initializeAuth =
       async () => {
-        try {
-          const refreshResponse =
-            await refresh().unwrap();
+        let retries = 2;
 
-          const refreshData =
-            refreshResponse?.data ||
-            refreshResponse;
+        while (retries >= 0) {
+          try {
+            const refreshResponse =
+              await refresh().unwrap();
 
-          const accessToken =
-            refreshData?.accessToken;
+            const refreshData =
+              refreshResponse?.data ||
+              refreshResponse;
 
-          if (!accessToken) {
-            throw new Error(
-              "Access token was not returned."
+            const accessToken =
+              refreshData?.accessToken;
+
+            if (!accessToken) {
+              throw new Error(
+                "Access token was not returned."
+              );
+            }
+
+            dispatch(
+              setCredentials({
+                user: null,
+                accessToken,
+              })
+            );
+
+            const meResponse =
+              await getMe().unwrap();
+
+            const meData =
+              meResponse?.data ||
+              meResponse;
+
+            dispatch(
+              setCredentials({
+                user: meData.user,
+                accessToken,
+              })
+            );
+
+            return;
+          } catch {
+            retries -= 1;
+
+            if (retries >= 0) {
+              await new Promise((r) =>
+                setTimeout(r, 500)
+              );
+              continue;
+            }
+
+            dispatch(
+              clearCredentials()
             );
           }
-
-          dispatch(
-            setCredentials({
-              user: null,
-              accessToken,
-            })
-          );
-
-          const meResponse =
-            await getMe().unwrap();
-
-          const meData =
-            meResponse?.data ||
-            meResponse;
-
-          dispatch(
-            setCredentials({
-              user: meData.user,
-              accessToken,
-            })
-          );
-        } catch {
-          dispatch(
-            clearCredentials()
-          );
-        } finally {
-          dispatch(
-            setInitialized(true)
-          );
         }
       };
 
-    initializeAuth();
+    initializeAuth().finally(() => {
+      dispatch(
+        setInitialized(true)
+      );
+    });
   }, [
     dispatch,
     refresh,

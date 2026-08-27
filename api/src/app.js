@@ -36,7 +36,7 @@ app.use(helmet({
       scriptSrc: ["'self'", "'unsafe-inline'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "blob:","https:"],
-      connectSrc: ["'self'", "ws:", "wss:", "http://localhost:5000", "http://localhost:5173"],
+      connectSrc: ["'self'", "ws:", "wss:", env.corsOrigin, "http://localhost:5000", "http://localhost:5173"],
       fontSrc: ["'self'", "data:","https:"],
       objectSrc: ["'none'"],
       frameAncestors: ["'none'"],
@@ -61,6 +61,8 @@ app.use(
   cors({
     origin: allowedOrigins,
     credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "Idempotency-Key"],
   })
 );
 

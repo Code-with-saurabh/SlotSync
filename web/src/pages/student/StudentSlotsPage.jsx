@@ -271,12 +271,12 @@ function StudentSlotsPage() {
 
       {/* HEADER */}
       <header className="border-b border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-3 py-3 sm:gap-4 sm:px-4 sm:py-4 lg:px-8">
           <div>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-white">SlotSync</h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400">Counselling appointment platform</p>
+            <h1 className="text-base font-bold text-slate-900 dark:text-white sm:text-xl">SlotSync</h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400 sm:text-sm">Counselling appointment platform</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3">
             <RealtimeStatus />
             <DarkModeToggle />
             <div className="hidden items-center gap-2 rounded-lg bg-slate-100 px-3 py-2 sm:flex dark:bg-slate-700">
@@ -289,9 +289,9 @@ function StudentSlotsPage() {
               type="button"
               onClick={handleLogout}
               disabled={logoutState.isLoading}
-              className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600 sm:gap-2 sm:px-3 sm:py-2 sm:text-sm"
             >
-              <LogOut size={16} />
+              <LogOut size={14} />
               {logoutState.isLoading ? "Signing out..." : "Logout"}
             </button>
           </div>
@@ -299,7 +299,7 @@ function StudentSlotsPage() {
       </header>
 
       {/* MAIN */}
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      <main className="mx-auto max-w-7xl px-3 py-4 sm:px-4 sm:py-6 lg:px-8">
 
         {/* HERO */}
         <section className="mb-6 rounded-2xl bg-white p-6 shadow-sm dark:bg-slate-800">
