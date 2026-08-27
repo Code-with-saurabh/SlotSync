@@ -15,7 +15,9 @@ import ProtectedRoute from "./routes/ProtectedRoute";
 import RoleRoute from "./routes/RoleRoute";
 
 import StudentSlotsPage from "./pages/student/StudentSlotsPage";
-import CounsellorDashboard from "./pages/counsellor/CounsellorDashboard";
+import CounsellorLayout from "./pages/counsellor/CounsellorLayout";
+import CounsellorSlotsPage from "./pages/counsellor/CounsellorSlotsPage";
+import CounsellorWaitlistPage from "./pages/counsellor/CounsellorWaitlistPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 function LoadingScreen({ text = "Loading SlotSync..." }) {
   return (
@@ -145,8 +147,11 @@ function AppRoutes() {
         >
           <Route
             path="/counsellor/dashboard"
-            element={<CounsellorDashboard />}
-          />
+            element={<CounsellorLayout />}
+          >
+            <Route index element={<CounsellorSlotsPage />} />
+            <Route path="waitlist" element={<CounsellorWaitlistPage />} />
+          </Route>
         </Route>
 
         {/* Admin */}

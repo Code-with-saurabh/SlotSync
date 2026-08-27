@@ -24,6 +24,15 @@ import { addClient, addGlobalClient } from "./utils/sse.js";
 const app = express();
 
 /*
+ * Trust first proxy (Render, Heroku, etc.)
+ * Required so req.secure works behind reverse proxy
+ * and secure cookies are set correctly in production.
+ */
+if (env.nodeEnv === "production") {
+  app.set("trust proxy", 1);
+}
+
+/*
  * Security
  */
 

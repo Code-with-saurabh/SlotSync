@@ -3,6 +3,7 @@ import {
   listStudentWaitlist,
   getStudentWaitlistEntry,
   leaveWaitlist,
+  listCounsellorWaitlist,
 } from "../services/waitlistService.js";
 
 import {
@@ -97,6 +98,30 @@ export async function leaveWaitlistController(
       res,
       {
         entry,
+      }
+    );
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function listCounsellorWaitlistController(
+  req,
+  res,
+  next
+) {
+  try {
+    const entries =
+      await listCounsellorWaitlist({
+        actor: req.user,
+        status: req.query.status,
+        limit: req.query.limit,
+      });
+
+    return successResponse(
+      res,
+      {
+        entries,
       }
     );
   } catch (error) {

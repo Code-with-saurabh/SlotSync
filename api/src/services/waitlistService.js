@@ -646,3 +646,44 @@ export async function leaveWaitlist({
 
   return entry;
 }
+
+/*
+ * --------------------------------------------------
+ * LIST COUNSELLOR WAITLIST
+ * --------------------------------------------------
+ */
+
+export async function listCounsellorWaitlist({
+  actor,
+  status,
+  limit = 100,
+}) {
+  if (!actor || actor.role !== "counsellor") {
+    throw new AppError(
+      "Only counsellors can view this.",
+      403,
+      "FORBIDDEN"
+    );
+  }
+
+  const slotIds = await Slot.find({ counsellorId: actor.id })
+    .select("_id")
+    .lean();
+
+  const ids = slotIds.map((s) => s._id);
+
+  if (ids.length === 0) return [];
+
+  const filter = { slotId: { $in: ids } };
+
+  if (status) {
+    filter.status = status;
+  }
+
+  return WaitlistEntry.find(filter)
+    .sort({ createdAt: -1, _id: -1 })
+    .limit(limit)
+    .populate("slotId", "counsellorId startAt endAt capacity bookedCount status")
+    .populate("studentId", "name email")
+    .lean();
+}

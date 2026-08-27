@@ -21,7 +21,7 @@ function setRefreshCookie(
     refreshToken,
     {
       httpOnly: true,
-     secure: env.cookieSecure,
+      secure: env.cookieSecure,
       sameSite: env.cookieSameSite,
       path: "/api/auth",
       maxAge: 7 * 24 * 60 * 60 * 1000,
@@ -34,7 +34,7 @@ function clearRefreshCookie(res) {
     "slotsync_refresh",
     {
       httpOnly: true,
-        secure: env.cookieSecure,
+      secure: env.cookieSecure,
       sameSite: env.cookieSameSite,
       path: "/api/auth",
     }

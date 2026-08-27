@@ -5,6 +5,7 @@ import {
   listWaitlistController,
   getWaitlistController,
   leaveWaitlistController,
+  listCounsellorWaitlistController,
 } from "../controllers/waitlistController.js";
 
 import {
@@ -26,6 +27,18 @@ import {
 } from "../validators/waitlistSchemas.js";
 
 const router = Router();
+
+/*
+ * GET /api/waitlist/counsellor
+ *
+ * IMPORTANT: Must be before /:id route.
+ */
+router.get(
+  "/counsellor",
+  authenticate,
+  authorize("counsellor"),
+  listCounsellorWaitlistController
+);
 
 /*
  * GET /api/waitlist
