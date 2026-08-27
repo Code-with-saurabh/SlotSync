@@ -10,6 +10,7 @@ import {
 } from "../utils/apiResponse.js";
 
 import { AppError } from "../utils/AppError.js";
+import { env } from "../config/env.js";
 
 function setRefreshCookie(
   res,
@@ -20,10 +21,8 @@ function setRefreshCookie(
     refreshToken,
     {
       httpOnly: true,
-      secure:
-        process.env.COOKIE_SECURE === "true",
-      sameSite:
-        process.env.COOKIE_SAME_SITE || "lax",
+     secure: env.cookieSecure,
+      sameSite: env.cookieSameSite,
       path: "/api/auth",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     }
@@ -35,10 +34,8 @@ function clearRefreshCookie(res) {
     "slotsync_refresh",
     {
       httpOnly: true,
-      secure:
-        process.env.COOKIE_SECURE === "true",
-      sameSite:
-        process.env.COOKIE_SAME_SITE || "lax",
+        secure: env.cookieSecure,
+      sameSite: env.cookieSameSite,
       path: "/api/auth",
     }
   );
