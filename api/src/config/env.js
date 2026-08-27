@@ -52,5 +52,7 @@ export const env = Object.freeze({
     process.env.NODE_ENV === "production",
 
   cookieSameSite:
-    process.env.COOKIE_SAME_SITE || "lax",
+    process.env.NODE_ENV === "production"
+      ? (process.env.COOKIE_SAME_SITE || "none")
+      : (process.env.COOKIE_SAME_SITE || "lax"),
 });

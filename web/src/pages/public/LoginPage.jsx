@@ -9,6 +9,8 @@ import {
   setInitialized,
 } from "../../features/auth/authSlice";
 
+import { useCapsLock } from "../../hooks/useCapsLock";
+
 function LoginPage() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -19,6 +21,8 @@ function LoginPage() {
   const [login, { isLoading, error }] =
     useLoginMutation();
 
+  const isCapsLock = useCapsLock();
+
   const handleSubmit = async (event) => {
     event.preventDefault();
 
@@ -28,46 +32,30 @@ function LoginPage() {
         password,
       }).unwrap();
 
-      /*
-       * Your backend response may be:
-       *
-       * { user, accessToken }
-       *
-       * OR
-       *
-       * { data: { user, accessToken } }
-       */
-
       const data =
         response.data || response;
 
-     dispatch(
-  setCredentials({
-    user: data.user,
-    accessToken: data.accessToken,
-  })
-);
+      dispatch(
+        setCredentials({
+          user: data.user,
+          accessToken: data.accessToken,
+        })
+      );
 
-dispatch(
-  setInitialized(true)
-);
+      dispatch(
+        setInitialized(true)
+      );
 
       if (data.user.role === "student") {
-        navigate("/student/slots", {
-          replace: true,
-        });
+        navigate("/student/slots", { replace: true });
       }
 
       if (data.user.role === "counsellor") {
-        navigate("/counsellor/dashboard", {
-          replace: true,
-        });
+        navigate("/counsellor/dashboard", { replace: true });
       }
 
       if (data.user.role === "admin") {
-        navigate("/admin/dashboard", {
-          replace: true,
-        });
+        navigate("/admin/dashboard", { replace: true });
       }
     } catch {
       // RTK Query error is shown below.
@@ -81,13 +69,13 @@ dispatch(
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-100 p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl">
+      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl sm:p-8">
         <div className="mb-8 text-center">
           <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600 text-white">
             <LogIn size={28} />
           </div>
 
-          <h1 className="text-3xl font-bold text-slate-900">
+          <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
             Welcome to SlotSync
           </h1>
 
@@ -132,6 +120,13 @@ dispatch(
               placeholder="Enter your password"
               className="w-full rounded-lg border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
             />
+
+            {isCapsLock && password.length > 0 && (
+              <p className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-amber-600">
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-500" />
+                Caps Lock is on
+              </p>
+            )}
           </div>
 
           {error && (
