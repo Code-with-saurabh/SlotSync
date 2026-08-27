@@ -2,7 +2,7 @@ import rateLimit from "express-rate-limit";
 
 export const globalRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-    limit: 300, // 300 requests per 15 min (enough for polling + normal use)
+    limit: 500, // 500(300) requests per 15 min (enough for polling + normal use)
     standardHeaders: "draft-8",
     legacyHeaders: false,
     skip: (req) => {
@@ -30,7 +30,7 @@ export const loginRateLimiter =
   rateLimit({
     windowMs: 15 * 60 * 1000,
 
-    limit: 5,
+    limit: 7,
 
     standardHeaders: "draft-8",
 
