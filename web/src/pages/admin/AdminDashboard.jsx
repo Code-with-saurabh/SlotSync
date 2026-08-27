@@ -143,6 +143,14 @@ function toDateTimeLocal(value) {
 }
 
 
+function getNowDateTimeLocal() {
+  const now = new Date();
+  const offset = now.getTimezoneOffset();
+  const local = new Date(now.getTime() - offset * 60 * 1000);
+  return local.toISOString().slice(0, 16);
+}
+
+
 function getStatusClasses(status) {
   switch (status) {
     case "open":
@@ -1016,11 +1024,11 @@ function AdminDashboard() {
               </div>
               <div>
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-200">Start Time</label>
-                <input type="datetime-local" name="startAt" required className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:focus:border-slate-400" />
+                <input type="datetime-local" name="startAt" min={getNowDateTimeLocal()} required className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:focus:border-slate-400" />
               </div>
               <div>
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-200">End Time</label>
-                <input type="datetime-local" name="endAt" required className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:focus:border-slate-400" />
+                <input type="datetime-local" name="endAt" min={getNowDateTimeLocal()} required className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:focus:border-slate-400" />
               </div>
               <div>
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-200">Capacity</label>
@@ -1052,11 +1060,11 @@ function AdminDashboard() {
             <form onSubmit={handleUpdateSlot} className="space-y-3 p-3 sm:space-y-4 sm:p-5">
               <div>
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-200">Start Time</label>
-                <input type="datetime-local" name="startAt" required defaultValue={toDateTimeLocal(editingSlot.startAt)} className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:focus:border-slate-400" />
+                <input type="datetime-local" name="startAt" min={getNowDateTimeLocal()} required defaultValue={toDateTimeLocal(editingSlot.startAt)} className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:focus:border-slate-400" />
               </div>
               <div>
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-200">End Time</label>
-                <input type="datetime-local" name="endAt" required defaultValue={toDateTimeLocal(editingSlot.endAt)} className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:focus:border-slate-400" />
+                <input type="datetime-local" name="endAt" min={getNowDateTimeLocal()} required defaultValue={toDateTimeLocal(editingSlot.endAt)} className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:focus:border-slate-400" />
               </div>
               <div>
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-200">Capacity</label>

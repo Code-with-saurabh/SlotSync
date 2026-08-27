@@ -156,6 +156,29 @@ export const counsellorApi =
             },
           ],
         }),
+
+
+      /*
+       * GET /api/waitlist/counsellor
+       *
+       * Waitlist entries for counsellor's slots.
+       */
+      getCounsellorWaitlist:
+        builder.query({
+          query: (params = {}) => ({
+            url: "/waitlist/counsellor",
+            params,
+          }),
+
+          transformResponse:
+            (response) =>
+              response?.data?.entries ||
+              [],
+
+          providesTags: [
+            "Waitlist",
+          ],
+        }),
     }),
 
     overrideExisting: false,
@@ -169,4 +192,5 @@ export const {
   useUpdateCounsellorStatusMutation,
   useGetCounsellorBookingsQuery,
   useMarkBookingOutcomeMutation,
+  useGetCounsellorWaitlistQuery,
 } = counsellorApi;
