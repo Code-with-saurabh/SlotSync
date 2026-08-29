@@ -1,12 +1,13 @@
 import { useMemo, useState } from "react";
 import { useSelector } from "react-redux";
-import { CalendarDays, Clock3, Plus, Users, X } from "lucide-react";
+import { CalendarDays, Clock3, ChevronDown, ChevronUp, Plus, UserRound, Users, X } from "lucide-react";
 
 import {
   useGetSlotsQuery,
   useCreateSlotMutation,
   useUpdateSlotMutation,
 } from "../../features/slots/slotApi";
+import { useGetCounsellorBookingsQuery } from "../../features/counsellor/counsellorApi";
 
 function getErrorMessage(error, fallback) {
   return error?.data?.message || error?.data?.error?.message || error?.message || fallback;
@@ -82,6 +83,22 @@ function CounsellorSlotsPage() {
 
   const [createSlot, createSlotState] = useCreateSlotMutation();
   const [updateSlot, updateSlotState] = useUpdateSlotMutation();
+  const [expandedSlotId, setExpandedSlotId] = useState(null);
+
+  const {
+    data: bookings = [],
+  } = useGetCounsellorBookingsQuery(undefined, { skip: !user?.id && !user?._id });
+
+  const bookingsBySlot = useMemo(() => {
+    const map = {};
+    for (const b of bookings) {
+      const sid = b?.slotId?._id || b?.slotId?.id || b?.slotId || b?.slot?._id || b?.slot?.id || b?.slot;
+      if (!sid) continue;
+      if (!map[sid]) map[sid] = [];
+      map[sid].push(b);
+    }
+    return map;
+  }, [bookings]);
 
   const sortedSlots = useMemo(() => {
     return [...slots].sort((a, b) => new Date(a.startAt) - new Date(b.startAt));
@@ -361,6 +378,51 @@ function CounsellorSlotsPage() {
                           Cancel
                         </span>
                       </button>
+                    </div>
+                  )}
+
+                  {booked > 0 && (
+                    <div className={`mt-3 ${isOpen ? "border-t border-slate-100 pt-3 dark:border-slate-700" : "border-t border-slate-100 pt-3 dark:border-slate-700"} sm:mt-4`}>
+                      <button
+                        type="button"
+                        onClick={() => setExpandedSlotId(expandedSlotId === slotId ? null : slotId)}
+                        className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-300 dark:hover:bg-blue-900/30"
+                      >
+                        <Users size={15} />
+                        View Students ({booked})
+                        {expandedSlotId === slotId ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+                      </button>
+
+                      {expandedSlotId === slotId && (
+                        <div className="mt-3 divide-y divide-slate-100 rounded-xl border border-slate-200 dark:divide-slate-700 dark:border-slate-700">
+                          {(bookingsBySlot[slotId] || []).map((booking) => {
+                            const name = booking?.studentId?.name || booking?.student?.name || booking?.studentName || "Student";
+                            const email = booking?.studentId?.email || booking?.student?.email || booking?.studentEmail || "";
+                            const status = booking?.status || "booked";
+                            const statusColor = status === "attended" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                              : status === "no_show" ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
+                              : status === "cancelled" ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+                              : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300";
+
+                            return (
+                              <div key={booking?._id || booking?.id} className="flex items-center justify-between gap-3 p-3">
+                                <div className="flex items-center gap-3">
+                                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-700">
+                                    <UserRound size={15} className="text-slate-500 dark:text-slate-300" />
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-medium text-slate-900 dark:text-white">{name}</p>
+                                    {email && <p className="text-xs text-slate-500 dark:text-slate-400">{email}</p>}
+                                  </div>
+                                </div>
+                                <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize ${statusColor}`}>
+                                  {status.replace("_", " ")}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   )}
                 </article>
